@@ -1,18 +1,106 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import '../../global.css';
+
+import {
+  Nunito_400Regular,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/nunito';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { SQLiteProvider } from 'expo-sqlite';
+import { StatusBar } from 'expo-status-bar';
+import { Suspense, useEffect, useState } from 'react';
+import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { ThemedSplash } from '@/components/ThemedSplash';
+import { ToastHost } from '@/components/ToastHost';
+import { DATABASE_NAME, initializeDatabase } from '@/db/database';
+import { useHideAmountsInBackground } from '@/hooks/useAmounts';
+import { useT } from '@/i18n';
+import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { fonts } from '@/theme/themes';
 
-SplashScreen.preventAutoHideAsync();
+// Dev-only tools. `__DEV__` is inlined as `false` in production bundles, so Metro drops this
+// branch *before* collecting dependencies and the module never ships (a top-level `import`
+// would still be bundled even if the JSX were never rendered).
+const DevToolsGear = __DEV__
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- the conditional require is what lets Metro strip it
+    (require('@/components/DevToolsGear') as typeof import('@/components/DevToolsGear')).DevToolsGear
+  : null;
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+// Keep the native splash up while fonts and the database load; the themed splash takes over
+// from it (see ThemedSplash) so there's never a blank frame in between.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+const hideNativeSplash = () => void SplashScreen.hideAsync().catch(() => {});
+
+/** Shown underneath the native splash while loading; matches its color. */
+function Loading() {
+  return <View style={{ flex: 1, backgroundColor: '#FCF6F9' }} />;
+}
+
+function ThemedStack() {
+  useHideAmountsInBackground();
+  const { theme } = useTheme();
+  const { t } = useT();
+  const c = theme.colors;
+  // Once per launch: the greeting covers the first render, then fades to reveal the app.
+  const [greeting, setGreeting] = useState(true);
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <>
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          contentStyle: { backgroundColor: c.background },
+          headerStyle: { backgroundColor: c.background },
+          headerTintColor: c.text,
+          headerTitleStyle: { fontFamily: fonts.extrabold, color: c.text },
+          headerShadowVisible: false,
+          headerBackButtonDisplayMode: 'minimal',
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ title: t('screen.settings') }} />
+      </Stack>
+      {__DEV__ && DevToolsGear ? <DevToolsGear /> : null}
+      <ToastHost />
+      {greeting && <ThemedSplash onShown={hideNativeSplash} onDone={() => setGreeting(false)} />}
+    </>
+  );
+}
+
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Nunito_400Regular,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
+
+  // Safety net: never leave the native splash up if something goes wrong before the app renders.
+  useEffect(() => {
+    const t = setTimeout(hideNativeSplash, 5000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // On a font error we still render; text falls back to the system font.
+  if (!fontsLoaded && !fontError) return <Loading />;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <Suspense fallback={<Loading />}>
+          <SQLiteProvider databaseName={DATABASE_NAME} onInit={initializeDatabase} useSuspense>
+            <ThemeProvider>
+              <ThemedStack />
+            </ThemeProvider>
+          </SQLiteProvider>
+        </Suspense>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }

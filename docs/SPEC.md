@@ -1,0 +1,614 @@
+# TangTu (Tanggal Tua) — product spec
+
+*TracKar's sister app: a personal money tracker. This started as the project brief; it is now the
+living spec. Decisions made since are written into the sections they affect and logged in §16.*
+
+> **For the AI starting this project.** Read this whole file before writing code. It is the spec.
+> Where it is silent, **ask the owner instead of inventing** product rules (money, dates, categories).
+> **Start with §0 (setup, step by step)**, then build in the phases of §13, verifying each one.
+> Keep this file updated: when a decision is made, write it here and add a line to §16.
+>
+> **This is a sister app of TracKar** — an offline Expo app by the same owner that tracks shifts and
+> income. It must look, feel and behave like TracKar (same themes, fonts, components, motion, interaction
+> patterns); only the *job* differs: TracKar tracks work, TangTu tracks money. **Don't re-invent TracKar's
+> pieces: copy them from its folder (§0 step 4) and adapt.** If this brief and TracKar's code disagree on
+> a design detail, TracKar's code wins; ask if unsure.
+
+---
+
+## 0. Start here — project identity and setup
+
+### 0.1 Identity (change only this table to rename the app)
+| | Value |
+|---|---|
+| App name (shown on the phone) | **TangTu** |
+| Full name (shown under the name: splash, About, store listing) | **Tanggal Tua** |
+| Tagline (splash) | **"Selamat datang di tanggal tua"** |
+| Project folder | `E:\Development\TangTu` |
+| Expo `slug` / URL `scheme` | `tangtu` / `tangtu` |
+| Android package | `com.tangtu.app` |
+| Expo account (`owner` in app.json) | `daveherlambang` (same as TracKar) |
+| First version | `0.1.0` while building; **`1.0.0`** for the first APK given to a user |
+
+*TangTu* is short for **tanggal tua** — Indonesian for the last days before payday, when the wallet is
+thin. Playful and self-aware, aimed at a young (Gen Z) audience. Name availability on Google Play and as a
+trademark has **not** been checked — the owner does that before the first public release.
+
+**Languages:** the app speaks **English and Bahasa Indonesia** from the first version (§6.5). The name,
+full name and tagline are Indonesian **brand lines** and stay Indonesian in both languages.
+
+### 0.2 Where things are
+- **This brief:** `E:\Development\` (the owner's main development folder).
+- **TracKar (the source to copy from):** `E:\Development\TracKar` — **read-only for you.** Never edit,
+  install packages in, run git in, or build TracKar. Only read and copy from it.
+- **The new project:** `E:\Development\TangTu` (created in step 1).
+- Useful TracKar reading before you start: `E:\Development\TracKar\docs\SPEC.md` §9 (design system) and
+  §10 (data, backup), and the comments in every file you copy — they explain hard-won fixes.
+
+### 0.3 Setup, step by step (do them in order; verify before moving on)
+
+**Step 1 — Create the project.** Check the current Expo docs first (`https://docs.expo.dev/llms.txt`,
+"create a project"); templates and flags change between SDKs.
+```powershell
+cd E:\Development
+npx create-expo-app@latest TangTu
+cd TangTu
+```
+The default template is Expo Router + TypeScript. If it has a `reset-project` script, run it and delete
+the example folder it creates. **Routes must live in `src/app/`** (like TracKar); if the template put them
+in `app/`, move them and confirm Expo Router still finds them. Delete example components/assets you won't use.
+
+**Step 2 — Identity and config (`app.json`).** From §0.1: `name`, `slug`, `scheme`, `owner`,
+`android.package`, `ios.bundleIdentifier` (same as the package), `version` `0.1.0`, `orientation`
+`portrait`, `userInterfaceStyle` `automatic`, `experiments.typedRoutes: true`. Copy TracKar's
+`android.blockedPermissions` (`SYSTEM_ALERT_WINDOW`, `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE`).
+Plugins: `expo-router`, `expo-sqlite`, `expo-font`, `expo-sharing`, `expo-splash-screen` (background
+`#FCF6F9`). **No `expo-notifications`** (TangTu sends no OS notifications). **App icon: later** — keep the
+template's placeholder icon and splash image until the owner provides artwork (§6.4); don't design one.
+
+**Step 3 — Install packages** (always through `npx expo install` so versions match the SDK):
+```powershell
+npx expo install expo-localization expo-sqlite expo-font @expo-google-fonts/nunito expo-haptics expo-file-system expo-sharing expo-document-picker expo-splash-screen expo-constants expo-status-bar expo-dev-client react-native-reanimated react-native-worklets react-native-gesture-handler react-native-keyboard-controller react-native-svg react-native-safe-area-context react-native-screens @expo/vector-icons zustand nativewind
+npm install -D tailwindcss@^3.4.17
+```
+(NativeWind 4 needs Tailwind 3 — check NativeWind's install guide for the current pairing.) Skip any
+package the template already has.
+
+**Step 4 — Copy TracKar's building blocks.** Copy these from `E:\Development\TracKar` into the same
+relative paths in `E:\Development\TangTu` (create folders as needed), e.g.
+```powershell
+$T = 'E:\Development\TracKar'; $K = 'E:\Development\TangTu'
+foreach ($f in @('babel.config.js','metro.config.js','tailwind.config.js','global.css','eslint.config.js','nativewind-env.d.ts','eas.json')) { Copy-Item "$T\$f" "$K\$f" -Force }
+New-Item -ItemType Directory -Force "$K\src\theme","$K\src\components","$K\src\hooks","$K\src\utils","$K\src\store","$K\src\services","$K\src\db","$K\src\dev" | Out-Null
+Copy-Item "$T\src\theme\*" "$K\src\theme\"
+# …then the component / hook / util / store / service files listed below, one by one.
+```
+| Copy as-is | Files |
+|---|---|
+| Components | `Touchable`, `AppText`, `Icon`, `Card`, `Button`, `TextField`, `CurrencyField`, `FormField`, `SegmentedControl`, `BottomSheet`, `PopoverMenu`, `SwipeActions`, `SwipeToDelete`, `ToastHost`, `MonthSwitcher`, `MonthPickerSheet`, `DatePickerSheet`, `CalendarGrid`, `DayStrip`, `ProgressRing`, `ProgressBar`, `SortableList`, `ThemeSwatch`, `ThemedSplash`, `AmountText`, `AmountsToggle`, `NotificationBell`, `DevToolsGear` (all in `src/components/`, `.tsx`) |
+| Hooks | `src/hooks/useDbQuery.ts`, `useHideOnScroll.ts`, `useNow.ts`, `useAmounts.ts` |
+| Utils / store | `src/utils/format.ts`, `haptics.ts`, `sanitizePrefs.ts`; `src/store/useAppStore.ts`, `useToastStore.ts`; `src/db/errors.ts` |
+
+| Copy, then adapt (keep the structure, replace the TracKar domain) | What to change |
+|---|---|
+| `src/theme/themes.ts` | Drop the `JobType` import and the `taskCard` / `chip` maps; add the category **tints** (§7.1) per theme. Keep every other token value exactly. |
+| `src/theme/ThemeProvider.tsx` | Nothing, unless the store's field names change. |
+| `src/utils/format.ts` | Keep money (`formatRupiah`, `maskRupiah`, `formatThousands`, `parseDigits`) and date helpers (`localeDate`, `localeDateTime`, `formatAgo`, `formatBackupAge`, three-letter months). Replace the fixed 26th period with a **start-day parameter** (§3). Replace `localeDate`'s Intl call with **month/weekday tables per language** (§6.5). Delete shift/task helpers (`isShiftInProgress`, `isJobOverdue`, …). |
+| `src/store/useAppStore.ts` | Keep the pattern (persist to `expo-sqlite/kv-store`, `partialize`, versioned `migrate`, `dataVersion`, in-memory `amountsVisible`). Preferences: `defaultTheme`, `language` (`system` \| `en` \| `id`), `periodStartDay`, `devToolsHidden`. Device markers: `notificationsSeenAt`, `lastAnnouncedVersion`, `lastRecapPeriod`, `lastBackupAt`. |
+| `src/db/database.ts` | Keep the migration runner (`PRAGMA user_version`, append-only list) and `resetDatabase`; new migrations for §3's tables. |
+| `src/services/backup.ts` | Keep validation, safety copy, undo restore and the share flow; table list → `Categories`, `Transactions` (+ `Budgets` later). |
+| `src/components/EarningsTrend.tsx` | → `SpendTrend.tsx`: same rules, fed by "spent per period" (§9.2). |
+| `src/app/_layout.tsx` | Use as the pattern for the root layout: `global.css` import, Nunito `useFonts`, `GestureHandlerRootView` → `KeyboardProvider` → `SQLiteProvider` (`onInit` = migrations, `useSuspense`) → `ThemeProvider`, `ToastHost`, `ThemedSplash`, the `__DEV__`-guarded `require` of `DevToolsGear`, `useHideAmountsInBackground`. Drop TracKar's notes prewarm, shift hooks and activity hooks. |
+| `src/dev/mockData.ts` | Rewrite for transactions (§12), keeping its rules: dev-only, deterministic, replaces everything. |
+| `AGENTS.md`, `docs/SPEC.md`, `CHANGELOG.md` | Write TangTu's own (step 7); use TracKar's as the template for structure and rules. |
+
+**Do not copy:** notes editor (`dom/`, TipTap, `NoteEditorPrewarm`), shift reminders, auto-finish,
+task/checklist code, `PinIcon`, `DoneStamp`, `RateSheet`, `RepeatSheet`, `TaskCard`, TracKar's assets.
+
+After copying, run `npx tsc --noEmit` and fix imports until it's clean; remove anything that still
+references jobs, shifts, notes or TracKar.
+
+**Step 5 — EAS.** The owner logs in (`npx eas-cli@latest login`); then `npx eas-cli@latest init` to create
+the project id. Keep TracKar's `eas.json` profiles (`development`, `preview` APK with `autoIncrement`,
+`production`). Generate the lockfile with npm 10 (§2) and check it.
+
+**Step 6 — Verify the skeleton.** `npx tsc --noEmit`, `npx expo lint`, `npx expo-doctor` all green; the app
+starts and shows a themed empty Home with the splash greeting. Because `expo-dev-client` is installed,
+`npx expo start` opens in dev-client mode; for Expo Go on the owner's iPhone use `npx expo start --go`.
+
+**Step 7 — Project docs.** `docs/SPEC.md` (this brief, kept current), `AGENTS.md` (the rules: read the spec
+first, non-goals, versioning, Touchable only, no push without asking, release checklist — modelled on
+TracKar's), `CHANGELOG.md`.
+
+**Step 8 — Git.** `create-expo-app` usually initialises git; make the first commit "Initialize TangTu".
+The owner creates the remote repository. **Never push without being asked.**
+
+---
+
+## 1. Product
+
+**One sentence:** an offline, private, beautiful app to record where your money goes, in categories you
+define yourself (each with its own icon and colour), with charts that make the month obvious at a glance.
+
+**User:** anyone with a phone and a monthly budget — first the owner, possibly a public release later.
+Not technical. Opens the app several times a day to log a purchase in seconds, and once in a while to
+look at the month. (Unlike TracKar, nothing personal in the copy: no names, no pet names.)
+
+**Principles**
+1. **Logging takes under 5 seconds**: tap +, type amount, tap a category, done. Everything else optional.
+2. **A category is recognisable without reading** — every category has an icon and a colour (§7).
+3. **Charts answer one question each**, clearly: where did it go / is this month worse / which days.
+4. **Calm, warm, playful-but-not-childish** (TracKar's tone). Nothing nags or shames.
+5. **Offline and private.** No account, no server, no analytics, no ads. Data lives on the phone; the
+   user backs it up to a file.
+6. **Never lose data.** Append-only migrations, validated backups, undo for destructive actions.
+
+**Non-goals (push back if asked):** accounts/login, cloud sync, bank or e-wallet integrations, multi-user
+or sharing, social features, investments/stocks/crypto, ads, analytics/telemetry, remote push
+notifications, web build, tablet layouts. A request that turns this into a bank app or a social app should
+be challenged before it is built.
+
+---
+
+## 2. Platform & stack (identical to TracKar)
+
+- **Target:** Android (real use). iOS only through Expo Go during development.
+- **Expo** managed workflow with Continuous Native Generation (never hand-edit `android/`/`ios/`),
+  **Expo Router** with typed routes, **TypeScript strict**, React 19, New Architecture.
+  - TracKar is on **Expo SDK 57**. Use the newest stable SDK at project start and **read the versioned
+    docs** (`https://docs.expo.dev/versions/v<major>.0.0/`); never code Expo APIs from memory.
+  - Always add packages with `npx expo install <pkg>`; run `npx expo install --fix` before every release.
+- **Data:** `expo-sqlite` (single source of truth). **Zustand** for UI preferences only, persisted to
+  `expo-sqlite/kv-store`.
+- **UI:** `react-native-reanimated` 4 (`.get()`/`.set()` on shared values) + `react-native-worklets`,
+  `react-native-gesture-handler`, `react-native-keyboard-controller` (all keyboard handling),
+  `react-native-svg`, `@expo/vector-icons` (**Ionicons only**), `@expo-google-fonts/nunito`, `expo-haptics`,
+  NativeWind + themed `StyleSheet`.
+- **Backup:** `expo-file-system`, `expo-sharing`, `expo-document-picker`.
+- **Optional, only if a feature needs it:** `expo-local-authentication` (app lock).
+- **Build:** EAS — `development` (dev client), `preview` (APK, `autoIncrement` versionCode; the one installed
+  on phones), `production` (AAB); `appVersionSource: "remote"`.
+  - EAS installs with **npm 10**: generate the lockfile with `npx --yes npm@10.9.8 install --package-lock-only`
+    and check with `npx --yes npm@10.9.8 ci --dry-run --include=dev` (an npm 11 lockfile breaks EAS `npm ci`).
+    `expo install --fix` writes with npm 11, so re-sync after it.
+- **Own identity** (§0.1): its own package name and signing key; it must never replace TracKar on a phone.
+  Download a copy of the keystore (`npx eas-cli credentials`).
+
+---
+
+## 3. Domain model
+
+All money is **integer rupiah** (no floats, no cents). All timestamps are **ISO-8601 UTC strings** (lexical
+order = chronological); "today", periods and display use **device local time**.
+
+### Tables (SQLite, schema version = `PRAGMA user_version`, migrations append-only)
+| Table | Columns (essentials) | Notes |
+|---|---|---|
+| `Categories` | `id`, `name` (NULL for an untouched seed category), `seed_key` (seed categories only, e.g. `food`), `kind` (`EXPENSE` \| `INCOME`), `icon` (Ionicons name from §7.2), `tint` (key from §7.1), `position`, `archived_at` (NULL = active), `created_at` | User-defined. Active names unique per kind. |
+| `Transactions` | `id`, `kind` (`EXPENSE` \| `INCOME`), `amount` (INTEGER > 0), `category_id` → Categories, `note`, `occurred_at`, `created_at`, `updated_at` | Sign comes from `kind`, never a negative amount. |
+| `Budgets` *(phase 7)* | `id`, `category_id`, `amount`, `from_period` | Applies from that period onward (like TracKar's salary history). |
+| `Activity` | `id`, `kind`, `params` (JSON), `ref_type`, `ref_id`, `dedupe_key`, `created_at` — in-app message history (§8.7) | Stores *what happened*, not sentences: text is rendered in the current language. Not backed up; cleared on restore. |
+
+**Rules**
+- **A used category is never hard-deleted.** "Delete" on a category with transactions = **archive** (gone
+  from pickers, still itself in history and charts, can be restored). An unused one may be deleted
+  (confirm + Undo).
+- **Changing a category's icon or tint changes it everywhere, including history** (it's identity, not a
+  per-transaction snapshot).
+- **Totals for a period:** spent = Σ EXPENSE; income = Σ INCOME; **left = income − spent**. One function
+  computes these and every screen uses it (Home, charts and category screens must never disagree).
+- Money format: `Rp 1.250.000` (dot thousands, TracKar's hand-rolled formatter), negatives `-Rp 15.000`.
+
+### Periods
+- A **period** is a month that starts on a **user-chosen start day** (default **1**; many people use
+  payday, e.g. the 25th). Start day 25 → "October" = 25 Sep – 24 Oct. Key = the month it **ends** in
+  (`"2026-10"`, TracKar's convention). Start days 29–31 clamp to the month's last day.
+- Changing the start day re-buckets history (a view setting, nothing stored per period); the setting says so.
+- UI says **"month" / "bulan"** when the start day is 1, **"period" / "periode"** otherwise.
+- Test period maths for start days 1, 25 and 31, including Dec → Jan and February.
+
+---
+
+## 4. Screens & navigation (Expo Router; routes in `src/app/` only)
+
+Two tabs, like TracKar (Dashboard + Notes): **Home** and **Charts**. Bell and Settings buttons top-right
+on Home (TracKar's dashboard header).
+
+| Route | Screen |
+|---|---|
+| `(tabs)/index` | **Home**: `‹ October ›` period switcher, summary card, budgets row (phase 7), transactions grouped by day, FAB `+` |
+| `(tabs)/charts` | **Charts**: §9's three charts for the chosen period |
+| `transaction/new`, `transaction/[id]` | Add / edit (below) |
+| `categories` | Manage: Expense / Income segmented, drag to reorder, add, edit (name, icon, tint), archive/restore |
+| `category/[id]` | One category: total for the period, its trend, its transactions |
+| `day/[date]` | One day's transactions (opened from the daily chart) |
+| `notifications` | The bell's history (§8.7) |
+| `settings` | Theme, language (§6.5), period start day, categories, backup / restore / undo restore, last backup, What's new |
+| `whats-new` | User-facing release notes (TracKar's page and version picker) |
+
+### Home
+- **Summary card** (TracKar's dashboard card): caption "Spent this month" + eye pill + "Details" pill →
+  **display** number in the money colour → caption "Rp X income · Rp Y left" → a row of 3 tappable stats:
+  **Top category** (icon badge + name), **Daily average**, **Transactions**. Amounts start hidden (§8.6).
+- **List:** newest first, grouped by day ("Today", "Yesterday", "Mon, 6 Oct") with the day total on the
+  header's right. Row = category badge (§7) · category name (or the note as the headline with the category
+  below — TracKar's "subject first" rule) · time · amount (expense in `text`, income in `success` with `+`).
+- Empty state: a soft card "No spending yet this month" + "Add the first one".
+
+### Add transaction (the critical path)
+1. **Amount** in a big display-size field with `Rp` prefix and live dot grouping, focused at once — an
+   in-app number pad (consistent size, no keyboard jump) with **000** and **⌫** keys and **quick amount**
+   chips (10.000 · 20.000 · 50.000 · 100.000). *(Owner may choose the system keyboard instead — §14.)*
+2. `Expense | Income` segmented control (default Expense).
+3. **Category grid**: 4 per row, icon badge + name, **most-used in the last 60 days first**, last tile
+   "+ New" (creates a category inline, then selects it).
+4. Optional: date chips **Today · Yesterday · Pick…**, and a note.
+5. **Save** (primary pill) → closes, success haptic, toast "Rp 25.000 · Food & Drinks" with **Undo**.
+
+---
+
+## 5. Behaviour rules (TracKar's)
+
+- **Acts immediately, offers Undo:** saving, editing, archiving.
+- **Deleting asks first, then still offers Undo** ("Delete this transaction?" → toast with Undo).
+- **Restoring a backup confirms** (replaces everything) and keeps a safety copy (§11).
+- **No nagging:** no budget-exceeded notifications, no streaks, no red shaming. Over budget is shown
+  calmly ("Rp 50.000 over", in `text`, not `danger`).
+- **Swipe left** on a row → **Again** (log the same amount and category now) · **Edit** · **Delete**;
+  **long-press** → a small sheet with the same actions (TracKar's notes pattern).
+- **Search** (phase 6): by note or category name, with category filter chips.
+
+---
+
+## 6. Design system — TracKar's "Playful Productivity" (copy, don't redesign)
+
+Soft-UI, card-based, generous radius, soft diffused **tinted** shadows, friendly rounded **Nunito**. Cute
+but not childish; calm, not corporate. **UI in English and Bahasa Indonesia (§6.5). No emoji in the UI.**
+
+### 6.1 Themes (three, chosen in Settings only)
+| Token | Cherry Blossom `sakura` (default) | Light `light` | Dark `dark` |
+|---|---|---|---|
+| `background` | `#FCF6F9` | `#F6F7F9` | `#1A1B26` |
+| `surface` | `#FFFFFF` | `#FFFFFF` | `#24283B` |
+| `text` | `#4A3540` | `#1D2027` | `#C0CAF5` |
+| `textMuted` | `#7A6570` | `#666B78` | `#9AA0C4` |
+| `border` (decorative only) | `#F6E3EB` | `#E9EBF0` | `#2F3450` |
+| `accent` (money colour) | `#9C5562` | `#167A4F` | `#7DCFFF` |
+| `accentAlt` | `#E88FAE` | `#4C7DF0` | `#BB9AF7` |
+| `primary` (fills: buttons, FAB, selected chips, rings) | `#E88FAE` | `#2F62D6` | `#BB9AF7` |
+| `onPrimary` | `#3E1A2C` | `#FFFFFF` | `#1A1B26` |
+| `primaryText` (brand-coloured text/icons) | `#A94273` | `#2F62D6` | `#BB9AF7` |
+| `outline` (outlines of pressable controls) | `#B87894` | `#8E94A3` | `#6D7399` |
+| `toastAction` | `#F6B8CD` | `#8FB0FF` | `#1A1B26` |
+| `success` (income) | `#357A4B` | `#167A4F` | `#9ECE6A` |
+| `danger` (destructive only) | `#C33F55` | `#C8343A` | `#F7768E` |
+| `track` | `#F8E6EE` | `#F0F1F4` | `#2F3450` |
+| `shadow` | `rgba(232,143,174,0.28)` | `rgba(17,24,39,0.08)` | `rgba(0,0,0,0.35)` |
+| card `shadow` | `0px 6px 18px rgba(232,143,174,0.18)` | `0px 4px 14px rgba(17,24,39,0.06)` | `0px 6px 18px rgba(0,0,0,0.3)` |
+
+- These are TracKar's values — copying `themes.ts` (§0 step 4) brings them in; this table is the check.
+- **Contrast (WCAG AA), checked by a test:** meaningful text/icons ≥ 4.5:1 on `surface`, `background` and
+  `track`; `onPrimary` on `primary`; outlines of pressable controls ≥ 3:1. `primary` is a fill; brand-coloured
+  text uses `primaryText`. Dark is navy, never pure black.
+
+### 6.2 Typography (`AppText` is the only text component)
+| Variant | Family | Size / line |
+|---|---|---|
+| `display` | Nunito ExtraBold | 26 / 32 |
+| `title` | Nunito ExtraBold | 19 / 24 |
+| `heading` | Nunito Bold | 15 / 20 |
+| `body` | Nunito SemiBold | 14 / 19 |
+| `label` | Nunito Bold | 13 / 17 |
+| `caption` | Nunito SemiBold | 12 / 16 |
+
+Each weight is its own `fontFamily` (Android ignores `fontWeight` for custom fonts). Follows the phone's
+font size up to **1.3×**; text boxes use `minHeight`, never `height`; big numbers use
+`adjustsFontSizeToFit` + `numberOfLines={1}`. Three-letter months everywhere, from the month tables of §6.5 (never Android's "Sept").
+
+### 6.3 Shape, spacing, components, motion
+- `radius = { sm: 10, md: 14, lg: 20, pill: 999 }`; `spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 }`.
+- Card = `surface`, radius `lg`, padding 14, theme shadow. Touch targets ≥ 44 pt (`hitSlop`).
+- Components behave exactly as in TracKar: Button pill 48/36; SegmentedControl (track + raised thumb);
+  BottomSheet (260 ms ease-out, shared-value transform, inputs focus `onOpened`); ToastHost (top, inverse
+  colours, 5 s, one at a time, optional action); SwipeActions (84 pt buttons); FAB 56 pt that **hides on
+  scroll down** and returns on scroll up; MonthSwitcher `‹ October 2026 ›`; ThemedSplash (spring in, hold
+  1.1 s, fade 320 ms).
+- Haptics: **tick** for small changes (category pick, number-pad keys, eye), **success** on save.
+- 200–260 ms, ease-out / in-out cubic; respect reduce-motion; **never animate a value swap by remounting**
+  (`key` + `entering` flickers on Android) — keep both states mounted and cross-fade (TracKar's `AmountText`).
+
+### 6.4 Brand
+- **App icon: later.** The owner will provide artwork; until then keep the template placeholder. When it
+  comes: TracKar's family (glossy 3D clay object with a small cat face on a soft pink background) but a
+  different object, generated into adaptive foreground + monochrome like TracKar.
+- **Splash (TracKar's `ThemedSplash`, re-worded):** the wordmark **TangTu** (display size, `primaryText`),
+  under it **Tanggal Tua** (caption, `textMuted`, letter-spaced), then the tagline **"Selamat datang di
+  tanggal tua"** (body). Same motion as TracKar: the wordmark springs in, the two lines follow, hold
+  1.1 s, fade 320 ms. These three lines are fixed brand copy (see §0.1).
+
+### 6.5 Languages — English | Bahasa Indonesia
+
+**Behaviour**
+- Settings → **Language**: **Follow phone** (default) · English · Bahasa Indonesia. "Follow phone" picks
+  Indonesian when the phone's first language is Indonesian, English otherwise. Switching applies at once,
+  no restart, and the choice travels in backups (`language` preference, validated by `sanitizePrefs`).
+- **Brand lines never change:** TangTu, Tanggal Tua, "Selamat datang di tanggal tua".
+- **Tone:** Indonesian is casual and warm — **"kamu"**, never "Anda" — with a light Gen Z touch that never
+  hides the meaning ("Catat", "Sisa", "Hari ini kamu belum jajan"). English is friendly and plain. Same
+  meaning in both; neither is a word-for-word copy of the other.
+- **Everything the user reads is translated**, including screen-reader labels, toasts, dialogs, empty
+  states and What's new. **Text the user typed** (notes, renamed categories) is never translated.
+
+**Glossary (use these words consistently)**
+| English | Bahasa Indonesia |
+|---|---|
+| Spent | Keluar |
+| Income | Masuk |
+| Left | Sisa |
+| Transaction | Transaksi |
+| Category | Kategori |
+| Month / Period | Bulan / Periode |
+| Today / Yesterday | Hari ini / Kemarin |
+| Add / Save / Edit | Tambah / Simpan / Ubah |
+| Delete / Archive / Restore | Hapus / Arsipkan / Pulihkan |
+| Undo / Again | Batalkan / Lagi |
+| Backup / Restore backup | Backup / Pulihkan backup |
+| Settings / Theme / Language | Pengaturan / Tema / Bahasa |
+| Recap / Details | Rekap / Detail |
+| What's new | Yang baru |
+
+**Dates and numbers** (own tables, not `Intl` — same output on every phone)
+- Months EN `Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec`; ID `Jan Feb Mar Apr Mei Jun Jul Agu Sep Okt Nov Des`
+  (plus full names for headers: "October 2026" / "Oktober 2026").
+- Weekdays EN `Mon Tue Wed Thu Fri Sat Sun`; ID `Sen Sel Rab Kam Jum Sab Min`. Day headers "Mon, 6 Oct" /
+  "Sen, 6 Okt". Time 24-hour in both.
+- **Money is the same in both:** `Rp 1.250.000`.
+- Plurals: English only ("1 transaction" / "3 transactions"); Indonesian has none ("3 transaksi").
+
+**Words stored as data**
+- **Seed categories** keep `name = NULL` and a `seed_key`; their name is shown from the dictionary, so they
+  follow the language. Renaming one stores the user's text in `name`, which is then shown as typed.
+- **Bell messages** store `kind` + `params` and are rendered when shown (TracKar stored plain sentences;
+  that would freeze them in one language).
+- **What's new** entries carry both texts: `{ version, date, en: {...}, id: {...} }`.
+
+**Implementation**
+- `expo-localization` for the phone's language (check its API in the current docs).
+- Own typed dictionaries, no i18n library needed for two offline languages: `src/i18n/en.ts` is the source
+  of truth; `src/i18n/id.ts` is typed `satisfies Messages`, so **a missing Indonesian key is a type error**.
+  `useT()` returns `t(key, params)` with `{name}` interpolation; `plural(n, one, other)` for English.
+- **No user-visible string literals in components** — everything goes through `t()` (enforced by a test).
+- **Indonesian is often 20–30% longer.** Every screen is checked in Indonesian at 1.3× font: nothing clipped,
+  pills and buttons grow (`minHeight`), no fixed widths around text.
+
+---
+
+## 7. Categories: icons and tints
+
+Every category = **icon badge** (Ionicons outline glyph in the tint's *ink*, on the tint's *fill*, 38 pt
+rounded square radius 12 — TracKar's task-card badge) + name. Identity never relies on colour alone.
+
+### 7.1 Tints (8, contrast-checked: ink ≥ 4.5:1 on its fill **and** on `surface`/`background`)
+| Key | Light & Cherry Blossom — fill / ink | Dark — fill / ink |
+|---|---|---|
+| `rose` | `#FDE2EC` / `#B23A68` | `#4A2B3B` / `#F7A1C0` |
+| `peach` | `#FFE5D4` / `#A94F17` | `#4A3326` / `#FFB38A` |
+| `amber` | `#FFF0C2` / `#7D5800` | `#463C22` / `#F2CC6B` |
+| `mint` | `#DCF2E3` / `#2B7448` | `#273F33` / `#8FD6A8` |
+| `teal` | `#D3F0EF` / `#1D6E6E` | `#213E43` / `#7FD6D6` |
+| `sky` | `#DDE9FF` / `#2F5FCF` | `#26365A` / `#9DB8FF` |
+| `lavender` | `#EBE3FB` / `#6447BD` | `#352E55` / `#C3A6FA` |
+| `slate` | `#E7E9EF` / `#545C6C` | `#313548` / `#B9BFD4` |
+
+Measured: light inks 4.56–5.66:1 on their fill, 5.50–6.72:1 on white; dark inks 6.07–7.06:1 on their
+fill, 7.04–9.45:1 on `#24283B`. **Tints are for badges, not chart colours:** as a chart palette they fail
+colour-blind separation (amber↔peach, mint↔teal), so charts use one hue (§9).
+
+### 7.2 Icon catalog (names verified in Ionicons; use the `-outline` variant)
+| Group | Icons |
+|---|---|
+| Food & drink | `fast-food` `restaurant` `cafe` `pizza` `ice-cream` `beer` `wine` `nutrition` |
+| Shopping | `cart` `basket` `bag-handle` `shirt` `pricetag` `storefront` `diamond` `gift` |
+| Transport | `car` `car-sport` `bus` `train` `subway` `bicycle` `airplane` `boat` `speedometer` |
+| Home & bills | `home` `flash` `water` `wifi` `phone-portrait` `tv` `receipt` `key` `bed` `construct` `hammer` |
+| Health & care | `medkit` `medical` `bandage` `fitness` `barbell` `heart` `cut` `sparkles` `glasses` |
+| Fun & hobbies | `game-controller` `film` `musical-notes` `ticket` `camera` `color-palette` `brush` `football` `basketball` `golf` `balloon` |
+| Learning & work | `school` `book` `library` `newspaper` `laptop` `desktop` `briefcase` `business` |
+| People & pets | `people` `person` `happy` `paw` `flower` `rose` `leaf` |
+| Money & services | `card` `cash` `wallet` `trending-up` `shield-checkmark` `umbrella` `repeat` `cloud` `globe` `ribbon` `trophy` `rocket` |
+| Other | `ellipsis-horizontal-circle` |
+
+Not available in Ionicons (don't use): `piggy-bank`, `baby`; brand `logo-*` icons have no outline variant.
+Re-check names against the installed `@expo/vector-icons` glyph map if the SDK changes.
+
+### 7.3 Seed categories (first launch; all editable/archivable; names follow the language until renamed)
+| Kind | `seed_key` | English | Bahasa Indonesia | Icon | Tint |
+|---|---|---|---|---|---|
+| Expense | `food` | Food & Drinks | Makan & Minum | `fast-food` | `peach` |
+| Expense | `groceries` | Groceries | Belanja Dapur | `basket` | `mint` |
+| Expense | `transport` | Transport | Transportasi | `car` | `sky` |
+| Expense | `bills` | Bills | Tagihan | `receipt` | `slate` |
+| Expense | `shopping` | Shopping | Belanja | `bag-handle` | `rose` |
+| Expense | `health` | Health | Kesehatan | `medkit` | `teal` |
+| Expense | `fun` | Fun | Hiburan | `game-controller` | `lavender` |
+| Expense | `gifts` | Gifts | Hadiah | `gift` | `amber` |
+| Expense | `other_expense` | Other | Lainnya | `ellipsis-horizontal-circle` | `slate` |
+| Income | `salary` | Salary | Gaji | `cash` | `mint` |
+| Income | `side_income` | Side income | Penghasilan sampingan | `briefcase` | `sky` |
+| Income | `gift_income` | Gift | Hadiah | `gift` | `rose` |
+| Income | `other_income` | Other | Lainnya | `ellipsis-horizontal-circle` | `slate` |
+
+### 7.4 Category editor
+Name field → **icon picker** (sheet with the §7.2 groups as sections, 6 per row, search by name) → **tint
+row** (8 round swatches, selected ring) → live preview of the badge. A new category gets the next tint in
+order so neighbours differ.
+
+---
+
+## 8. Interaction patterns (TracKar's, reuse them)
+
+1. **Undo toast** after every immediate action.
+2. **Confirm, then Undo** for deletes.
+3. **Swipe left** → actions; **long-press** → same actions in a sheet.
+4. **FAB hides on scroll.**
+5. **Period switcher** wherever numbers appear; Home and Charts share the chosen period.
+6. **Hidden amounts (the eye)** — TracKar's `AmountText`/`AmountsToggle`: Home summary shows
+   `Rp •.•••.•••` (one dot per digit) until the eye pill is tapped; memory only, hidden again on app start,
+   on leaving the screen and in the background; both layers mounted and cross-faded (240 ms, 4 pt drift);
+   screen readers hear "hidden". Lists and charts are not hidden (they need a tap to reach).
+7. **The bell (in-app history, no OS notifications):** "September recap" at the start of a period (spent,
+   income, left, top 3 categories), "Backup restored", "What's new in x.y.z". Red dot until the bell is opened.
+   Rows store `kind` + `params` and are written out in the current language when shown (§6.5).
+8. **Pull to refresh** on lists.
+
+---
+
+## 9. Charts (the reason the app exists)
+
+General (TracKar's trend-chart rules): zero baseline; thin bars with 4 pt rounded ends; recessive grid
+(`border`); **no number on every mark** — one line above the chart states the answer; **tap a mark** to
+select it and update that line; the selected mark is highlighted by colour **and** bold label; every mark
+is a button with a full spoken label (the screen-reader table view); never a dual axis, never a rainbow.
+**Single hue:** bars use `accent` (selected) and `outline` (others), so the charts need no categorical palette.
+
+1. **Where did it go — ranked category bars (primary).** One row per expense category, largest first:
+   **icon badge · name · bar (`accent`) · amount · % of spent**. Top 7 + **"Other"** (the rest folded, tap
+   to expand). Tap a row → `category/[id]`. Above: "Food & Drinks is 34% of this month".
+2. **Is this month worse — trend.** "Spent, last 6 periods" — TracKar's `EarningsTrend` reused as
+   `SpendTrend`: chosen period `accent`, others `outline`; line above "Rp 240.000 more than Sep" / "less
+   than" / current period "So far · Sep ended at Rp …". Starts at the first period with data; with fewer
+   than 2 periods, show a one-line hint instead of hiding silently. Tap a bar → switch period.
+3. **Which days — daily spend.** A bar per day of the period (today outlined), a thin dashed average line
+   labelled "avg Rp 85.000". Tap a day → `day/[date]`.
+
+Later (owner decides): income vs spent per period (two series → legend + direct labels + a validated palette).
+
+---
+
+## 10. What's new & versioning (TracKar's rules)
+
+- **Semantic versioning, enforced:** PATCH = fixes/polish/dependency bumps; MINOR = new capability, changed
+  meaning of numbers, or a removed feature; MAJOR = breaks stored data/backups or changes the app's purpose.
+  `app.json`, `package.json`, `package-lock.json` versions match; `versionCode` automatic. Push back if the
+  owner proposes a number that doesn't fit the changes.
+- Every release: `CHANGELOG.md` (developer-facing) + a user-facing entry in `src/constants/releaseNotes.ts`
+  (New / Improved / Fixed, plain words) **in English and Indonesian**, shown on the What's new page in
+  the app's language.
+
+---
+
+## 11. Data safety & backup (TracKar's design, proven)
+
+- **Append-only migrations** (`PRAGMA user_version`); every schema/preference change keeps old backups restorable.
+- **Backup = JSON** (`format: 1`): all tables + preferences, through the share sheet (Drive, Files…).
+  Android can't tell "saved" from "cancelled", so afterwards ask **"Did you save the backup?"**; only
+  "Yes, saved" updates **"Last backup: 12 days ago"** in Settings (passive text, no reminders).
+- **Restore** treats files as untrusted: reject non-app files, newer schemas, damaged tables and empty
+  backups; apply only known, valid preferences; map columns by name.
+- **Safety copy + Undo restore** for 7 days (`pre-restore-backup.json` in the document directory, verified
+  before anything is replaced; refuse the restore if it can't be written).
+- Device markers (last backup, bell seen, last recap) never travel in backups.
+
+---
+
+## 12. Engineering rules
+
+- Routes only in `src/app/`; `@/` → `src/`; all SQL in `src/db/*Repository.ts`; screens read through
+  `useDbQuery` (re-runs on focus and on a `dataVersion` bump after writes).
+- Strict TypeScript; never import `Pressable` (use `Touchable`); keyboard via `react-native-keyboard-controller`.
+- **Every user-visible string goes through `t()`** (§6.5); a test fails on string literals rendered in components.
+- **Dev tools only behind `__DEV__`** (guarded `require`): gear with "Nuke database" and
+  **"Mock data · 6 months / 1 year"** (deterministic, replaces everything; realistic spending per category,
+  a few big months and quiet months, salary on the start day). Verify release bundles don't contain them.
+- **Tests kept in the repo** (`scripts/` or `__tests__/`), run against real SQLite (`node:sqlite` + Node
+  type stripping): totals, period bucketing (start days 1/25/31), archive rules, most-used ordering,
+  backup validation, migrations from every older schema, contrast of every theme token and tint, month/weekday
+  tables in both languages, seed categories following the language until renamed.
+- Done = `tsc --noEmit`, `expo lint`, `expo-doctor`, `expo export` green.
+- Commit/push only when the owner asks; propose a patch-notes style commit message first.
+
+---
+
+## 13. Build order (each phase ends with something usable)
+
+1. **Setup & design system:** §0 steps 1–8; three themes, splash, **i18n (EN | ID) from the first screen**
+   (retrofitting later is expensive), Settings → Theme and Language, contrast test.
+2. **Categories:** tables + seed (§7.3), badge component, manage screen with icon picker and tints.
+3. **Core loop:** add/edit/delete with number pad, quick amounts, most-used grid, Undo; Home with period
+   switcher, summary card and day-grouped list; FAB hide-on-scroll; swipe actions incl. **Again**.
+4. **Charts:** ranked bars, trend (hint when < 2 periods), daily; category and day screens.
+5. **Safety:** backup/restore, safety copy + undo restore, last backup; mock-data dev tool.
+6. **Polish:** eye, search + filters, period start day, bell + period recap, What's new, release APK.
+7. *(Owner decides)* app icon, budgets per category (calm ring like TracKar's content goal), recurring
+   transactions, wallets (Cash / Bank / E-wallet) with transfers, app lock.
+
+---
+
+## 14. Decisions for the owner (ask before building the affected part)
+
+Answered 2026-11-18:
+1. **Currency: selectable, rupiah the default.** Still to settle before the Transactions table / currency
+   setting are built (phase 3): which currencies are offered, how decimals are stored (amounts stay
+   integers in the smallest unit), and what switching currency does to amounts already logged (relabel
+   only — no conversion — is the simple reading). Until then everything is rupiah (`CURRENCY_SYMBOL`).
+2. **Default period start day: 1** (calendar months; the UI says "month" / "bulan").
+3. **Wallets: later** (phase 7).
+4. **Income tracked in v1** (Expense | Income; left = income − spent).
+6. **In-app number pad** for the amount (§4).
+
+Still open:
+5. Seed categories as in §7.3, or different? (ask before phase 2)
+7. *(Later)* app icon artwork; final name check before any public release.
+8. **Contrast gaps in TracKar's colours.** §6.1 checks meaningful text on `surface`, `background` **and**
+   `track`; TracKar only checks `surface`. Four TracKar values (kept exactly, as §6.1 says) miss the stricter
+   rule. The contrast test pins them as known gaps until the owner chooses: keep, or darken by one step:
+
+   | Theme · pair | Now | Suggested | Then |
+   |---|---|---|---|
+   | Cherry Blossom `textMuted` on `track` | `#7A6570` 4.47:1 | `#79646F` | 4.54:1 |
+   | Cherry Blossom `success` on `track` | `#357A4B` 4.35:1 | `#347749` | 4.52:1 |
+   | Cherry Blossom `danger` on `track` | `#C33F55` 4.21:1 | `#BB3C52` | 4.52:1 |
+   | Light `outline` on `background` | `#8E94A3` 2.83:1 | `#898F9D` | 3.02:1 |
+
+---
+
+## 15. Acceptance checklist for v1.0.0
+
+- [ ] A purchase is logged in ≤ 5 seconds from Home.
+- [ ] Every category is recognisable by its badge; all 8 tints pass contrast in all three themes.
+- [ ] Spent / income / left agree on Home, Charts and category screens for any period and start day.
+- [ ] Archived categories leave the pickers but stay correct in history and charts.
+- [ ] Large font (1.3×) clips nothing — checked in **both languages**; the eye hides and re-hides as specified.
+- [ ] Every screen, dialog, toast and screen-reader label exists in English and Indonesian; switching
+  language applies at once; untouched seed categories and bell messages follow it.
+- [ ] Every destructive action confirms and/or offers Undo; backup → uninstall → restore brings everything back.
+- [ ] Release APK has no dev tools and no TracKar leftovers; `tsc`, lint, `expo-doctor`, export are green.
+
+---
+
+## 16. Decisions & build log
+
+**2026-11-18 — phase 1 (setup & design system)**
+- Created with `create-expo-app` on **Expo SDK 58** (newest stable; TracKar is on 57): React Native 0.88,
+  React 19.3, Reanimated 4.7, **gesture-handler 3.3** (TracKar: 2.32 — the swipe and drag components compile,
+  but are only exercised from phase 3). Template example code, its `@expo/ui`, `expo-image`, `expo-symbols`,
+  `expo-glass-effect`, `expo-device` and `expo-web-browser` packages, and the React Compiler flag removed
+  (TracKar doesn't use it).
+- RN 0.88 changed ref types: copied components use `HostInstance` / `TextInputInstance` as ref types.
+- Owner answers to §14 recorded there.
+- **Copied later, in their phase** (they need tables that don't exist yet): `services/backup.ts` and
+  `dev/mockData.ts` (phase 5), `EarningsTrend` → `SpendTrend` (phase 4), `NotificationBell` + the
+  Activity table (phase 6). The dev gear has only "Nuke database" until mock data exists.
+  `MIGRATIONS` is empty; phase 2 adds the first migration (Categories + seed).
+- Themes: `label` removed from the theme objects (names come from the dictionaries); tints added as
+  `theme.tints[key] = { fill, ink }`.
+- i18n: flat typed dictionaries (`src/i18n/en.ts`, `id.ts satisfies Messages`), `useT()` → `{ t, tp, lang }`,
+  `{Name}` in a string fills the capitalised value of `name` (for Indonesian sentences that start with
+  "bulan"/"periode"). Plural keys are `<base>.one` / `<base>.other`. "Follow phone" also treats the legacy
+  `in` code as Indonesian.
+- The period Home and Charts show is shared in the store (`selectedPeriod`, in memory, `null` = current).
+- Splash wordmark is 46 pt (TracKar's splash size) in `primaryText`, rather than the 26 pt `display` variant.
+- Tests live in `__tests__/` and run under plain Node (`npm test`); a resolve hook maps `@/` and
+  extensionless imports. `__tests__/tsconfig.json` adds Node types for the tests only.
+- EAS: `eas init` (creating the Expo project `@daveherlambang/tangtu`) is left for the owner to run.
+

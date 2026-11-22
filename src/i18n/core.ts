@@ -14,7 +14,7 @@ export const LANGUAGE_PREFS: readonly LanguagePref[] = ['system', 'en', 'id'];
 
 const DICTIONARIES: Record<Language, Messages> = { en, id };
 
-/** "Follow phone" picks Indonesian when the phone's first language is Indonesian, English otherwise. */
+/** "System default" picks Indonesian when the phone's first language is Indonesian, English otherwise. */
 export function resolveLanguage(pref: LanguagePref, phoneLanguageCode: string | null | undefined): Language {
   if (pref === 'en' || pref === 'id') return pref;
   // "in" is the legacy ISO code some Android versions still report for Indonesian.

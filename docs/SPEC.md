@@ -333,7 +333,7 @@ font size up to **1.3×**; text boxes use `minHeight`, never `height`; big numbe
 ### 6.5 Languages — English | Bahasa Indonesia
 
 **Behaviour**
-- Settings → **Language**: **Follow phone** (default) · English · Bahasa Indonesia. "Follow phone" picks
+- Settings → **Language**: **System default** (default) · English · Bahasa Indonesia. "System default" picks
   Indonesian when the phone's first language is Indonesian, English otherwise. Switching applies at once,
   no restart, and the choice travels in backups (`language` preference, validated by `sanitizePrefs`).
 - **Brand lines never change:** TangTu, Tanggal Tua, "Selamat datang di tanggal tua".
@@ -535,6 +535,10 @@ wrongly (a feature hidden inside a patch).
 
 ### 10.3 Git: branches, tags, commit messages
 
+*Origin: the owner asked for a branch per version merged into `master`, and English commit messages in the
+style of the release notes; the details below (fast-forward, tags, message layout) were written by Claude
+for 0.1.0, modelled on TracKar. The owner later ruled out attribution lines.*
+
 - **Remote:** `origin` = `https://github.com/DaveHerlambang/TangTu`. **`master`** holds released versions
   only; every commit on it belongs to a finished version.
 - **One branch per version:** `release/x.y.z` (e.g. `release/0.2.0`), created from `master` when work on
@@ -547,7 +551,8 @@ wrongly (a feature hidden inside a patch).
     line, the release's one-sentence summary (the English `summary` from `releaseNotes.ts`), then the
     sections that apply — `NEW`, `CHANGED`, `FIXED`, `REMOVED`, `UNDER THE HOOD` — as `- ` bullets
     written for the owner (what changed for the user, not which files), same headings as `CHANGELOG.md`.
-    End with the `Co-Authored-By` trailer the session gives. Only this release's changes.
+    Only this release's changes. **No `Co-Authored-By` or other attribution lines** (owner, 2026-11-22):
+    the message ends with the last bullet.
   - Any **earlier commits on the branch**: one short imperative line (`Add budget per category`), body optional.
 - **Never push without the owner asking.** Propose the commit message first.
 
@@ -850,3 +855,10 @@ Still open:
   one `release/x.y.z` branch per version, fast-forward into `master`, annotated tag `vX.Y.Z`, English
   patch-notes release commits. Remote `origin` = `https://github.com/DaveHerlambang/TangTu`.
 - Phases 1–6 released as **0.1.0** (dated 2026-11-22 in `CHANGELOG.md` and `releaseNotes.ts`); first push.
+
+**2026-11-22 — release 0.1.1 (PATCH)**
+- Owner (on the phone): typing a note on the add/edit screen, the keyboard covered the note field. The form
+  scrolled in a plain `ScrollView`; it is now a `KeyboardAwareScrollView` whose `bottomOffset` clears the Save
+  bar that rides on the keyboard (`NOTE_CLEARANCE` = bar padding + `BUTTON_HEIGHT.md` + air).
+- Owner: Language "Follow phone" / "Ikuti HP" renamed **"System default" / "Default sistem"** (the wording
+  Android and most apps use). Same behaviour.

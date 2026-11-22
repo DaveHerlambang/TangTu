@@ -1,4 +1,4 @@
-// Languages (§6.5): both dictionaries complete and consistent, date tables right, "Follow phone".
+// Languages (§6.5): both dictionaries complete and consistent, date tables right, "System default".
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
@@ -55,7 +55,7 @@ describe('translator', () => {
     assert.equal(makeTranslator('id').tp('count.transactions', 1), '1 transaksi');
     assert.equal(makeTranslator('id').tp('count.transactions', 3), '3 transaksi');
   });
-  test('"Follow phone" picks Indonesian only for an Indonesian phone', () => {
+  test('"System default" picks Indonesian only for an Indonesian phone', () => {
     assert.equal(resolveLanguage('system', 'id'), 'id');
     assert.equal(resolveLanguage('system', 'in'), 'id');
     assert.equal(resolveLanguage('system', 'en'), 'en');

@@ -85,7 +85,7 @@ export const en = {
   'theme.light': 'Light',
   'theme.dark': 'Dark',
 
-  'language.system': 'Follow phone',
+  'language.system': 'System default',
   'language.system.detail': 'Currently {language}',
   'language.en': 'English',
   'language.id': 'Bahasa Indonesia',

@@ -1,12 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
-import { KeyboardStickyView } from 'react-native-keyboard-controller';
+import { Alert, View } from 'react-native';
+import { KeyboardAwareScrollView, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/AppText';
-import { Button } from '@/components/Button';
+import { BUTTON_HEIGHT, Button } from '@/components/Button';
 import { CategoryBadge } from '@/components/CategoryBadge';
 import { sameDay, startOfDay } from '@/components/CalendarGrid';
 import { ChoiceSheet } from '@/components/ChoiceSheet';
@@ -61,6 +61,11 @@ interface Form {
 }
 
 const DAY_MS = 86_400_000;
+/**
+ * While the note is typed, the Save bar rides on the keyboard (the pad steps aside), so the focused field
+ * must clear the bar's visible part — padding, button, padding — plus a little air, not just the keyboard.
+ */
+const NOTE_CLEARANCE = spacing.md + BUTTON_HEIGHT.md + spacing.md + spacing.lg;
 const invalidate = () => useAppStore.getState().invalidateData();
 
 /** The chosen day at the clock time of `timeOf` (now for a new entry; the original time when editing). */
@@ -252,7 +257,11 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+      <KeyboardAwareScrollView
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={NOTE_CLEARANCE}
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+      >
         {/* Amount: big, live-grouped, in the transaction's currency (tap the chip to change it). */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
           <Touchable
@@ -400,7 +409,7 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
         </FormField>
 
         {existing ? <Button label={t('common.delete')} kind="danger" icon="trash-outline" onPress={confirmDelete} /> : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Pinned to the bottom (and above the keyboard while typing a note, when the pad steps aside). */}
       <KeyboardStickyView offset={{ opened: insets.bottom }}>

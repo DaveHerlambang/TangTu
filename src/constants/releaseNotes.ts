@@ -25,6 +25,36 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.1.1',
+    date: '2026-11-22',
+    en: {
+      summary: 'Small fixes: writing a note is easier, and a clearer name in the language setting.',
+      sections: [
+        {
+          heading: 'improved',
+          items: ['Settings → Language: "Follow phone" is now called "System default".'],
+        },
+        {
+          heading: 'fixed',
+          items: ['When you write a note on a transaction, the keyboard no longer covers the note.'],
+        },
+      ],
+    },
+    id: {
+      summary: 'Perbaikan kecil: menulis catatan jadi lebih nyaman, dan nama yang lebih jelas di pengaturan bahasa.',
+      sections: [
+        {
+          heading: 'improved',
+          items: ['Pengaturan → Bahasa: "Ikuti HP" sekarang bernama "Default sistem".'],
+        },
+        {
+          heading: 'fixed',
+          items: ['Saat menulis catatan di transaksi, keyboard tidak lagi menutupi kolom catatan.'],
+        },
+      ],
+    },
+  },
+  {
     version: '0.1.0',
     date: '2026-11-22',
     en: {

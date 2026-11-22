@@ -74,7 +74,7 @@ export const id = {
   'theme.light': 'Terang',
   'theme.dark': 'Gelap',
 
-  'language.system': 'Ikuti HP',
+  'language.system': 'Default sistem',
   'language.system.detail': 'Sekarang {language}',
   'language.en': 'English',
   'language.id': 'Bahasa Indonesia',

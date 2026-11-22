@@ -18,7 +18,9 @@ interface ButtonProps extends Omit<TouchableProps, 'style' | 'children'> {
   style?: StyleProp<ViewStyle>;
 }
 
-const HEIGHT: Record<ButtonSize, number> = { md: 48, sm: 36 };
+/** Fixed button heights — exported so layouts that sit around a button (e.g. a bar above the keyboard) can be exact. */
+export const BUTTON_HEIGHT: Record<ButtonSize, number> = { md: 48, sm: 36 };
+const HEIGHT = BUTTON_HEIGHT;
 
 export function Button({
   label,

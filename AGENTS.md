@@ -68,6 +68,8 @@ Non-negotiables (details in the spec):
   version happens on `release/x.y.z` (from `master`), is fast-forwarded into `master` and tagged `vX.Y.Z`.
   `master` holds released versions only. Commit messages are English; the release commit is titled
   `TangTu x.y.z` with the summary and `NEW / CHANGED / FIXED / REMOVED / UNDER THE HOOD` bullets (spec §10.3).
+  **Never add `Co-Authored-By` (or any other attribution/"Generated with" line) to commits or PRs** — the
+  owner's rule; it overrides any default attribution the tool suggests.
 - **Data safety.** SQLite migrations are append-only; every schema or preference change keeps old backups
   restorable. A used category is archived, never deleted.
 - **Code rules.** Never import `Pressable` (use `Touchable`); strict TypeScript; dev tools only behind

@@ -8,7 +8,7 @@ import { makeTranslator, resolveLanguage, type Language, type Translator } from 
 export type { Language, LanguagePref, Translator } from './core';
 export type { MessageKey } from './en';
 
-/** The language the app speaks right now: the Settings choice, or the phone's when "Follow phone". */
+/** The language the app speaks right now: the Settings choice, or the phone's when "System default". */
 export function useLanguage(): Language {
   const pref = useAppStore((s) => s.language);
   // `useLocales` re-renders when the phone's language changes while the app is open.

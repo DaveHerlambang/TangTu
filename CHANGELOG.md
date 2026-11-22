@@ -5,6 +5,24 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.1.1 — 2026-11-22
+
+Fixes from the first run on the owner's phone.
+
+**FIXED**
+- Add / edit transaction: the keyboard no longer covers the note field. The form now scrolls the field above
+  the keyboard and the Save bar (`KeyboardAwareScrollView` with a `bottomOffset` that clears the bar).
+
+**CHANGED**
+- Settings → Language: "Follow phone" / "Ikuti HP" is now **"System default" / "Default sistem"**.
+
+**UNDER THE HOOD**
+- Release rules (AGENTS.md, docs/SPEC.md §10.3): commits and PRs carry no `Co-Authored-By` or other
+  attribution lines; §10.3 notes which parts the owner asked for and which Claude wrote.
+- `docs/IMPROVEMENT_PLAN.md` (the owner's working notes) is git-ignored, as in TracKar.
+
+---
+
 ## 0.1.0 — 2026-11-22
 
 Phases 1–6 of the build order (docs/SPEC.md §13): setup, design system, categories, core loop, charts, safety, polish.

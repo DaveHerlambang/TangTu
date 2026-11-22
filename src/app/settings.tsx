@@ -309,7 +309,7 @@ export default function SettingsScreen() {
 
 function LanguageSheet({ value, onPick, onClose }: { value: LanguagePref; onPick: (pref: LanguagePref) => void; onClose: () => void }) {
   const { t } = useT();
-  // What "Follow phone" means right now, named in that language's own words.
+  // What "System default" means right now, named in that language's own words.
   const phone = resolveLanguage('system', useLocales()[0]?.languageCode);
   return (
     <ChoiceSheet

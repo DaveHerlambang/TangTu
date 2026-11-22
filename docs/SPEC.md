@@ -238,16 +238,27 @@ on Home (TracKar's dashboard header).
 - Empty state: a soft card "No spending yet this month" + "Add the first one".
 
 ### Add transaction (the critical path)
-1. **Amount** in a big display-size field with `Rp` prefix and live dot grouping, focused at once — an
-   in-app number pad (consistent size, no keyboard jump) with **000** and **⌫** keys and **quick amount**
-   chips (10.000 · 20.000 · 50.000 · 100.000). *(Owner may choose the system keyboard instead — §14.)*
-2. `Expense | Income` segmented control (default Expense).
+Top to bottom, in the order you think it (layout since 0.2.0, owner-approved):
+1. `Expense | Income` segmented control (default Expense) — first, because it sets the amount's colour and
+   which categories show.
+2. **Amount**, big and **centred** (like a payment screen), `Rp` and live dot grouping, an underline, and a
+   muted hint "Tap to enter the amount" / "Tap to change". **The number pad is closed when the screen opens**
+   (new and edit alike — owner, 0.2.0: see the whole screen first, open the pad yourself). Tapping the amount
+   slides the in-app pad up above Save (blinking caret; steady with reduced motion); it has **000** and
+   **⌫** keys, **quick amount** chips (10.000 · 20.000 · 50.000 · 100.000 — number only, one size) and **⌄** to hide it. The pad also
+   steps aside when a category is picked, the day chip or the note is touched, or Back is pressed.
 3. **Category grid**: 4 per row, icon badge + name, **most-used in the last 60 days first**, last tile
    "+ New" (opens the category editor inline — pick a §7.3 template or start blank — then selects the new
    category). The app starts with **no categories** (§7.3), so the very first purchase goes amount → "+ New" →
    tap a template → Save; after that the 5-second path applies.
-4. Optional: date chips **Today · Yesterday · Pick…**, and a note.
-5. **Save** (primary pill) → closes, success haptic, toast "Rp 25.000 · Food & Drinks" with **Undo**.
+4. Optional, on one line: a **day chip** ("Today ▾" → sheet with Today · Yesterday · Pick a date…) and the
+   **note** field ("Add a note (optional)"). The note scrolls clear of the keyboard and the Save bar.
+5. **Save** (primary pill, pinned at the bottom) → closes, success haptic, toast "Rp 25.000 · Food & Drinks"
+   with **Undo**. **Save is always enabled and always says "Save"** (owner, 0.2.0: no disabled button). Pressed
+   with something missing, it takes you there, calmly (primary-text colour, never red, §5): no amount → the
+   pad opens, the amount shakes and "Enter the amount first" replaces its hint; no category → the pad closes,
+   the grid scrolls into view and shakes, and "Pick one to save" shows under its label. Warning haptic; the
+   line is announced to screen readers; no shake with reduced motion. The line goes once that part is filled.
 
 ---
 
@@ -514,7 +525,7 @@ These rules are **binding**. Every change that reaches `master` is a release wit
 
 - **PATCH** (`x.y.Z`) — bug fixes, wording and translation fixes, visual polish, performance,
   dependency/SDK patch bumps. **No new capability, and no number on screen changes meaning.**
-- **MINOR** (`x.Y.0`) — a new capability (screen, setting, chart, currency, category template, bell
+- **MINOR** (`x.Y.0`) — a new capability (screen, setting, chart, category template, bell
   message, icon/branding change), **or** a change to what an existing number or behaviour means (e.g. how a
   period or a total is counted), **or** a removed feature. Saved data and older backups stay readable.
 - **MAJOR** (`X.0.0`) — older backups or stored data can no longer be restored/read as they were, or the
@@ -631,22 +642,21 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
 ## 14. Decisions for the owner (ask before building the affected part)
 
 Answered 2026-11-18:
-1. **Currency: selectable, rupiah the default** (owner, 2026-11-18):
-   - Offered: **IDR, USD, JPY, EUR, SGD** (for now).
-   - **Decimals where the currency has them** (USD/EUR/SGD cents; IDR/JPY whole). Amounts are stored as
-     integers in the smallest unit (`$4.50` = 450).
-   - Each written in its **usual style**: `Rp 1.250.000` · `$1,250.50` · `€1.250,50` · `S$1,250.50` · `¥1,250`.
-   - **One default currency in Settings**; each transaction stores its own currency and can be switched
-     on the add/edit screen (starts on the default).
-   - **Totals count only the default currency.** Other currencies show in lists in their own format and
-     as one line under the summary: "Also $12.50 · ¥3,000 (not in totals)". Charts count the default
-     currency, with a note about what's left out.
-   - Changing the default currency shows a warning and converts nothing (conversion: later). Since each
-     transaction keeps its own currency, history never changes meaning.
+1. **Currency: rupiah only** (owner, 2026-11-22, replacing the 2026-11-18 decision of five selectable currencies):
+   - Transactions in another currency weren't in the totals, and no offline app can convert them correctly
+     (rates change daily), so the gap could only grow. **0.2.0 removed** the currency choice on the
+     add/edit screen and the default currency in Settings; every new transaction is **IDR**, and every total,
+     chart and recap counts IDR.
+   - Data stays safe: the `currency` column stays; `money.ts` still formats the old five currencies, so a
+     transaction logged in 0.1.x in another currency still shows in its own format, is listed as "not in
+     totals", keeps its currency when edited, and 0.1.x backups restore (their `defaultCurrency` preference
+     is ignored).
+   - Later, if wanted: "paid in a foreign currency" with the rupiah amount actually charged typed in (rate
+     fixed at that moment) — not scheduled.
 2. **Default period start day: 1** (calendar months; the UI says "month" / "bulan").
 3. **Wallets: later** (phase 7).
 4. **Income tracked in v1** (Expense | Income; left = income − spent).
-6. **In-app number pad** for the amount (§4).
+6. **In-app number pad** for the amount (§4); since 0.2.0 it opens only when the amount is tapped.
 
 5. **Categories: the §7.3 list as written, but as templates, not created automatically.** Colour is one of
    the 8 preset tints (changeable), icon changeable; template names follow the language until renamed.
@@ -862,3 +872,20 @@ Still open:
   bar that rides on the keyboard (`NOTE_CLEARANCE` = bar padding + `BUTTON_HEIGHT.md` + air).
 - Owner: Language "Follow phone" / "Ikuti HP" renamed **"System default" / "Default sistem"** (the wording
   Android and most apps use). Same behaviour.
+
+**2026-11-22 — release 0.2.0 (MINOR: a feature removed)**
+- Owner: **rupiah only** (§14.1 rewritten). Removed: the currency chip and sheet on the add/edit screen, Settings →
+  Currency with its warning, `defaultCurrency` (store, backups — ignored when an old backup has it), the yen
+  and dollar rows in mock data, the currency names in the dictionaries. Every screen counts `DEFAULT_CURRENCY`.
+- Owner: **add/edit screen redesigned** (§4): Expense | Income first, amount centred, the pad closed until the
+  amount is tapped (owner chose this over opening it at once; one extra tap, more control). It opens by
+  animating its holder's height 0 → pad height (pad always mounted, revealed bottom-up, hidden from touch and
+  screen readers while closed), so the bar rises while Save stays put — a first try with layout animations
+  made Save drop in from above the pad (owner, on the phone). ⌄ and Back hide it; day chip + note on one line.
+  `ChoiceSheet`'s hint is optional now.
+- Save: a first version disabled the button and changed its words ("Enter the amount" → "Pick a category");
+  owner rejected it (people press it and nothing happens). Now always enabled, "Save"; a press with something
+  missing nudges (`hapticNudge`, shake, scroll, a line via `FormField`'s new `message`).
+- Quick-amount chips: number only ("10.000", "100.000" — `formatQuickAmount`), one font size for all, no
+  per-chip shrinking (owner: "Rp 100.000" looked untidy next to "Rp 10.000"). Screen readers still hear the
+  full amount.

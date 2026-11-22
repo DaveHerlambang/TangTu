@@ -18,12 +18,11 @@ import { usePeriodSettings, useSelectedPeriod } from '@/hooks/usePeriodSettings'
 import { useSpendTrend } from '@/hooks/useSpendTrend';
 import { useTransactionActions } from '@/hooks/useTransactionActions';
 import { useT } from '@/i18n';
-import { useAppStore } from '@/store/useAppStore';
 import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
 import { spacing, type Theme } from '@/theme/themes';
 import { categoryName } from '@/utils/categoryNames';
 import { formatDayLabel, formatPeriodName, periodRange } from '@/utils/format';
-import { formatMoney } from '@/utils/money';
+import { DEFAULT_CURRENCY, formatMoney } from '@/utils/money';
 import { formatShare, groupByDay, summarize } from '@/utils/summary';
 
 /**
@@ -42,7 +41,7 @@ export default function CategoryScreen() {
   const categoryId = Number(id);
   const { startDay } = usePeriodSettings();
   const { key, setKey } = useSelectedPeriod();
-  const currency = useAppStore((s) => s.defaultCurrency);
+  const currency = DEFAULT_CURRENCY;
 
   const load = useCallback(
     async (db: SQLiteDatabase) => {

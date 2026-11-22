@@ -4,9 +4,9 @@ import { useCallback, useMemo } from 'react';
 import { firstTransactionAt, listTransactions } from '@/db/transactionsRepository';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { usePeriodSettings } from '@/hooks/usePeriodSettings';
-import { useAppStore } from '@/store/useAppStore';
 import { periodEnd, periodKey, periodStart } from '@/utils/format';
 import { trendKeys, trendPoints, type TrendPoint } from '@/utils/summary';
+import { DEFAULT_CURRENCY } from '@/utils/money';
 
 /**
  * The trend's data (§9.2): up to 6 periods ending at `shown`, starting at the first period with data —
@@ -15,7 +15,7 @@ import { trendKeys, trendPoints, type TrendPoint } from '@/utils/summary';
  */
 export function useSpendTrend(shown: string, categoryId?: number): { points: TrendPoint[] | undefined; current: string } {
   const { startDay, currentKey } = usePeriodSettings();
-  const currency = useAppStore((s) => s.defaultCurrency);
+  const currency = DEFAULT_CURRENCY;
   const current = currentKey();
 
   const load = useCallback(

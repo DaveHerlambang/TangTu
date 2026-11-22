@@ -5,13 +5,16 @@ import { test } from 'node:test';
 import { sanitizePrefs } from '@/utils/sanitizePrefs';
 
 test('keeps known keys with valid values', () => {
-  assert.deepEqual(sanitizePrefs({ defaultTheme: 'dark', language: 'id', periodStartDay: 25, defaultCurrency: 'USD', devToolsHidden: true }), {
+  assert.deepEqual(sanitizePrefs({ defaultTheme: 'dark', language: 'id', periodStartDay: 25, devToolsHidden: true }), {
     defaultTheme: 'dark',
     language: 'id',
     periodStartDay: 25,
-    defaultCurrency: 'USD',
     devToolsHidden: true,
   });
+});
+
+test('a 0.1.x backup still restores: its defaultCurrency is ignored (rupiah only since 0.2.0)', () => {
+  assert.deepEqual(sanitizePrefs({ language: 'en', defaultCurrency: 'USD' }), { language: 'en' });
 });
 
 test('drops unknown keys and invalid values', () => {

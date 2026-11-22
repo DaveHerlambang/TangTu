@@ -15,11 +15,11 @@ import { useDbQuery } from '@/hooks/useDbQuery';
 import { usePeriodSettings, useSelectedPeriod } from '@/hooks/usePeriodSettings';
 import { useSpendTrend } from '@/hooks/useSpendTrend';
 import { useT } from '@/i18n';
-import { useAppStore } from '@/store/useAppStore';
 import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
 import { radius, spacing, type Theme } from '@/theme/themes';
 import { periodRange } from '@/utils/format';
 import { spendByDay, summarize } from '@/utils/summary';
+import { DEFAULT_CURRENCY } from '@/utils/money';
 
 /**
  * Charts (§9) for the period chosen on Home (shared): where did it go (ranked categories) · is this
@@ -33,7 +33,7 @@ export default function ChartsScreen() {
   const { t } = useT();
   const { startDay } = usePeriodSettings();
   const { key, isCurrent, setKey } = useSelectedPeriod();
-  const currency = useAppStore((s) => s.defaultCurrency);
+  const currency = DEFAULT_CURRENCY;
 
   const load = useCallback((db: SQLiteDatabase) => listTransactions(db, periodRange(key, startDay)), [key, startDay]);
   const { data, error } = useDbQuery(load);

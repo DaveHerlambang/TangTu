@@ -7,7 +7,7 @@ import { useT } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/themes';
 import { hapticTick } from '@/utils/haptics';
-import { currencyDecimals, decimalSeparator, formatMoney, quickAmounts, type Currency, type PadKey } from '@/utils/money';
+import { currencyDecimals, decimalSeparator, formatMoney, formatQuickAmount, quickAmounts, type Currency, type PadKey } from '@/utils/money';
 
 const KEY_HEIGHT = 50;
 const ROWS: readonly (readonly PadKey[])[] = [
@@ -21,14 +21,16 @@ interface NumberPadProps {
   onKey: (key: PadKey) => void;
   /** A quick chip sets the whole amount (in the smallest unit). */
   onQuick: (minor: number) => void;
+  /** The ⌄ key at the end of the quick row puts the pad away (the user decides when it shows, §4). */
+  onHide: () => void;
 }
 
 /**
  * The in-app number pad (§4): same size every time, no keyboard jump. Bottom row is
  * `000 · 0 · ⌫` for whole-unit currencies and `. · 0 · ⌫` (or `,`) for ones with cents.
- * Long-press ⌫ clears. Quick amount chips sit on top.
+ * Long-press ⌫ clears. Quick amount chips sit on top, with ⌄ to hide the pad.
  */
-export function NumberPad({ currency, onKey, onQuick }: NumberPadProps) {
+export function NumberPad({ currency, onKey, onQuick, onHide }: NumberPadProps) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { t } = useT();
@@ -69,7 +71,6 @@ export function NumberPad({ currency, onKey, onQuick }: NumberPadProps) {
     <View style={{ gap: spacing.sm }}>
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         {quickAmounts(currency).map((minor) => {
-          const label = formatMoney(minor, currency);
           return (
             <Touchable
               key={minor}
@@ -78,11 +79,11 @@ export function NumberPad({ currency, onKey, onQuick }: NumberPadProps) {
                 onQuick(minor);
               }}
               accessibilityRole="button"
-              accessibilityLabel={t('pad.quick', { amount: label })}
+              accessibilityLabel={t('pad.quick', { amount: formatMoney(minor, currency) })}
               style={({ pressed }) => ({
                 flex: 1,
-                minHeight: 34,
-                paddingHorizontal: 2,
+                minHeight: 36,
+                paddingHorizontal: 4,
                 borderRadius: radius.pill,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -91,12 +92,29 @@ export function NumberPad({ currency, onKey, onQuick }: NumberPadProps) {
                 backgroundColor: pressed ? c.track : 'transparent',
               })}
             >
-              <AppText variant="caption" numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.15}>
-                {label}
+              {/* One size for every chip (no per-chip shrinking), so 100.000 sits as neatly as 10.000. */}
+              <AppText variant="label" numberOfLines={1} maxFontSizeMultiplier={1.15}>
+                {formatQuickAmount(minor, currency)}
               </AppText>
             </Touchable>
           );
         })}
+        <Touchable
+          onPress={onHide}
+          accessibilityRole="button"
+          accessibilityLabel={t('pad.hide')}
+          hitSlop={4}
+          style={({ pressed }) => ({
+            width: 44,
+            minHeight: 36,
+            borderRadius: radius.pill,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: pressed ? c.border : c.track,
+          })}
+        >
+          <Icon name="chevron-down" size={20} color={c.text} />
+        </Touchable>
       </View>
       {ROWS.map((row, i) => (
         <View key={i} style={{ flexDirection: 'row', gap: spacing.sm }}>

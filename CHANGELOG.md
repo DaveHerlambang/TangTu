@@ -5,6 +5,37 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.2.0 — 2026-11-22
+
+The add screen, redesigned, and rupiah only.
+
+**CHANGED**
+- Add / edit transaction redesigned (docs/SPEC.md §4): Expense | Income first, then the amount big and
+  centred with a "Tap to enter the amount" hint, then the categories, then the day chip and the note on one
+  line, Save pinned at the bottom.
+- The number pad is closed when the screen opens. Tapping the amount slides it up from the bottom (blinking
+  caret) while Save stays in place; it slides away on ⌄, Back, picking a category, or touching the day or the note.
+- Quick-amount chips show the number only ("10.000", "100.000"), all at the same size.
+- The day is one chip ("Today ▾") that opens Today · Yesterday · Pick a date….
+- Save is always enabled and always says "Save". Pressed with something missing it shows where: no amount →
+  the pad opens, the amount shakes, "Enter the amount first"; no category → the grid scrolls into view and
+  shakes, "Pick one to save". Calm colour, warning haptic, announced to screen readers.
+
+**REMOVED**
+- Other currencies (owner, §14.1): no currency choice on the add/edit screen, no default currency in Settings.
+  Every new transaction is rupiah and every total counts rupiah. Transactions already logged in another
+  currency keep their currency and stay "not in totals"; 0.1.x backups still restore (their default
+  currency is ignored).
+
+**UNDER THE HOOD**
+- `defaultCurrency` removed from the store and from backups; screens use `DEFAULT_CURRENCY`.
+- Mock data is rupiah only. `NumberPad` gained `onHide`; `ChoiceSheet`'s hint is optional; `formatQuickAmount`;
+  `FormField` gained `message`; `hapticNudge`.
+- The pad animates its holder's height (Reanimated `withTiming`), not a layout animation, so Save never moves.
+- Tests: an old backup's `defaultCurrency` is ignored; mock data has no other currencies.
+
+---
+
 ## 0.1.1 — 2026-11-22
 
 Fixes from the first run on the owner's phone.

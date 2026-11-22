@@ -51,6 +51,19 @@ export function formatMoney(minor: number, currency: Currency): string {
   return `${minor < 0 ? '-' : ''}${s.symbol}${s.space ? ' ' : ''}${number}`;
 }
 
+/**
+ * A quick-amount chip's label: the number only, no symbol (the amount above already shows it), no
+ * zero decimals — "10.000", "100.000", "5" — so every chip reads at the same size.
+ */
+export function formatQuickAmount(minor: number, currency: Currency): string {
+  const s = SPECS[currency];
+  const factor = 10 ** s.decimals;
+  const abs = Math.abs(Math.round(minor));
+  const frac = abs % factor;
+  const number = groupDigits(String(Math.floor(abs / factor)), s.group);
+  return frac ? number + s.decimal + String(frac).padStart(s.decimals, '0') : number;
+}
+
 /** "+Rp 25.000" for income. */
 export const formatSignedMoney = (minor: number, currency: Currency) =>
   minor > 0 ? `+${formatMoney(minor, currency)}` : formatMoney(minor, currency);

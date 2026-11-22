@@ -25,13 +25,12 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { THEME_ORDER, radius, spacing, themes, type ThemeName } from '@/theme/themes';
 import { errorAlert } from '@/utils/errorMessage';
 import { formatBackupAge } from '@/utils/format';
-import { CURRENCIES, formatMoney, type Currency } from '@/utils/money';
 
 const THEME_LABEL: Record<ThemeName, MessageKey> = { sakura: 'theme.sakura', light: 'theme.light', dark: 'theme.dark' };
 const LANGUAGE_LABEL: Record<LanguagePref, MessageKey> = { system: 'language.system', en: 'language.en', id: 'language.id' };
 
 /**
- * Settings (§4): categories and currency, theme and language, and your data — backup, restore and
+ * Settings (§4): categories and the month's start day, theme and language, and your data — backup, restore and
  * undo restore with "Last backup" (§11), and About: What's new and the version.
  */
 export default function SettingsScreen() {
@@ -45,9 +44,7 @@ export default function SettingsScreen() {
   const setDefaultTheme = useAppStore((s) => s.setDefaultTheme);
   const language = useAppStore((s) => s.language);
   const setLanguage = useAppStore((s) => s.setLanguage);
-  const defaultCurrency = useAppStore((s) => s.defaultCurrency);
-  const setDefaultCurrency = useAppStore((s) => s.setDefaultCurrency);
-  const [sheet, setSheet] = useState<'theme' | 'language' | 'currency' | 'startDay' | null>(null);
+  const [sheet, setSheet] = useState<'theme' | 'language' | 'startDay' | null>(null);
   const startDay = useAppStore((s) => s.periodStartDay);
   const setPeriodStartDay = useAppStore((s) => s.setPeriodStartDay);
   const setSelectedPeriod = useAppStore((s) => s.setSelectedPeriod);
@@ -147,16 +144,6 @@ export default function SettingsScreen() {
     ]);
   };
 
-  /** Changing the default only changes what new entries start in and what totals count: warn, convert nothing. */
-  const pickCurrency = (currency: Currency) => {
-    setSheet(null);
-    if (currency === defaultCurrency) return;
-    Alert.alert(t('dialog.currency.title'), t('dialog.currency.body', { currency: t(`currency.${currency}`) }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('dialog.currency.confirm'), onPress: () => setDefaultCurrency(currency) },
-    ]);
-  };
-
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.background }}
@@ -168,14 +155,6 @@ export default function SettingsScreen() {
           label={t('screen.categories')}
           detail={t('settings.categories.detail')}
           onPress={() => router.push('/categories')}
-        />
-        <Divider />
-        <Row
-          icon="cash-outline"
-          label={t('settings.currency')}
-          detail={t('settings.currency.detail')}
-          value={defaultCurrency}
-          onPress={() => setSheet('currency')}
         />
         <Divider />
         <Row
@@ -266,16 +245,6 @@ export default function SettingsScreen() {
             setDefaultTheme(name);
             setSheet(null);
           }}
-        />
-      )}
-      {sheet === 'currency' && (
-        <ChoiceSheet
-          title={t('settings.currency')}
-          hint={t('settings.currency.sheetHint')}
-          options={CURRENCIES.map((cur) => ({ key: cur, label: `${cur} · ${t(`currency.${cur}`)}`, detail: formatMoney(123_456, cur) }))}
-          value={defaultCurrency}
-          onClose={() => setSheet(null)}
-          onPick={pickCurrency}
         />
       )}
       {sheet === 'startDay' && (

@@ -11,11 +11,10 @@ import { useDbQuery } from '@/hooks/useDbQuery';
 import { usePeriodSettings } from '@/hooks/usePeriodSettings';
 import { useTransactionActions } from '@/hooks/useTransactionActions';
 import { useT } from '@/i18n';
-import { useAppStore } from '@/store/useAppStore';
 import { useThemedStyles } from '@/theme/ThemeProvider';
 import { spacing, type Theme } from '@/theme/themes';
 import { dayRange, formatDayLabel, parseDayKey, periodKey } from '@/utils/format';
-import { formatMoney } from '@/utils/money';
+import { DEFAULT_CURRENCY, formatMoney } from '@/utils/money';
 import { summarize } from '@/utils/summary';
 
 /**
@@ -30,7 +29,7 @@ export default function DayScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
   const day = useMemo(() => parseDayKey(date ?? ''), [date]);
   const { startDay } = usePeriodSettings();
-  const currency = useAppStore((s) => s.defaultCurrency);
+  const currency = DEFAULT_CURRENCY;
 
   const load = useCallback((db: SQLiteDatabase) => (day ? listTransactions(db, dayRange(day)) : Promise.resolve([])), [day]);
   const { data, error } = useDbQuery(load);

@@ -28,8 +28,8 @@ import { sanitizePrefs } from '@/utils/sanitizePrefs';
 
 /** The preferences a backup carries. Device markers (last backup, bell seen, recap) never travel. */
 function currentPrefs(): Partial<PersistedPrefs> {
-  const { defaultTheme, language, periodStartDay, defaultCurrency, devToolsHidden } = useAppStore.getState();
-  return { defaultTheme, language, periodStartDay, defaultCurrency, devToolsHidden };
+  const { defaultTheme, language, periodStartDay, devToolsHidden } = useAppStore.getState();
+  return { defaultTheme, language, periodStartDay, devToolsHidden };
 }
 
 async function writeJson(file: File, value: unknown): Promise<void> {

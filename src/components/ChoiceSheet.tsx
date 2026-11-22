@@ -26,7 +26,7 @@ export function ChoiceSheet<K extends string>({
   onClose,
 }: {
   title: string;
-  hint: string;
+  hint?: string;
   options: ChoiceOption<K>[];
   value: K;
   onPick: (key: K) => void;
@@ -39,9 +39,11 @@ export function ChoiceSheet<K extends string>({
       <View style={{ gap: spacing.sm }}>
         <View style={{ marginBottom: spacing.xs }}>
           <AppText variant="title">{title}</AppText>
-          <AppText variant="caption" tone="muted">
-            {hint}
-          </AppText>
+          {hint ? (
+            <AppText variant="caption" tone="muted">
+              {hint}
+            </AppText>
+          ) : null}
         </View>
         {options.map((o) => {
           const selected = o.key === value;

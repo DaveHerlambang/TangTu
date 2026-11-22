@@ -23,13 +23,12 @@ import { useHideOnScroll } from '@/hooks/useHideOnScroll';
 import { useTransactionActions } from '@/hooks/useTransactionActions';
 import { usePeriodSettings, useSelectedPeriod } from '@/hooks/usePeriodSettings';
 import { useT } from '@/i18n';
-import { useAppStore } from '@/store/useAppStore';
 import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
 import { radius, spacing, type Theme } from '@/theme/themes';
 import type { TransactionWithCategory } from '@/types/models';
 import { categoryName } from '@/utils/categoryNames';
 import { formatDayLabel, periodRange } from '@/utils/format';
-import { formatMoney } from '@/utils/money';
+import { DEFAULT_CURRENCY, formatMoney } from '@/utils/money';
 import { groupByDay, summarize, type PeriodSummary } from '@/utils/summary';
 
 /**
@@ -47,7 +46,7 @@ export default function HomeScreen() {
   const { t } = translator;
   const { startDay, kind: periodKind } = usePeriodSettings();
   const { key } = useSelectedPeriod();
-  const currency = useAppStore((s) => s.defaultCurrency);
+  const currency = DEFAULT_CURRENCY;
   useHideAmountsOnLeave();
 
   const load = useCallback((db: SQLiteDatabase) => listTransactions(db, periodRange(key, startDay)), [key, startDay]);

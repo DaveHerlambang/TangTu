@@ -5,6 +5,7 @@ import { findRelease } from '@/constants/releaseNotes';
 import { addActivity, buildRecap, hasAnyTransactions } from '@/db/activityRepository';
 import { useAppStore } from '@/store/useAppStore';
 import { periodKey, shiftPeriodKey } from '@/utils/format';
+import { DEFAULT_CURRENCY } from '@/utils/money';
 
 /**
  * Things the app tells you about in the bell (§8.7) — in-app only, never an OS notification. Each one
@@ -24,7 +25,7 @@ export async function logPeriodRecapIfDue(db: SQLiteDatabase, now: Date = new Da
   if (store.lastRecapPeriod !== null && store.lastRecapPeriod >= previous) return false;
   // Mark it handled first: whatever happens below, the same period isn't evaluated again.
   store.setLastRecapPeriod(previous);
-  const recap = await buildRecap(db, previous, store.periodStartDay, store.defaultCurrency);
+  const recap = await buildRecap(db, previous, store.periodStartDay, DEFAULT_CURRENCY);
   if (!recap) return false;
   return addActivity(db, 'recap', recap, { dedupeKey: `recap:${previous}`, now });
 }

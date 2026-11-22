@@ -7,3 +7,6 @@ export const hapticSuccess = () => void Haptics.notificationAsync(Haptics.Notifi
 
 /** A small state change, e.g. ticking a checklist item. */
 export const hapticTick = () => void Haptics.selectionAsync().catch(() => {});
+
+/** Something still needs doing (e.g. Save pressed without an amount) — a nudge, not an error. */
+export const hapticNudge = () => void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});

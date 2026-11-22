@@ -37,7 +37,7 @@ async function filledDb() {
   return db;
 }
 
-const prefs = { defaultTheme: 'dark', language: 'id', periodStartDay: 25, defaultCurrency: 'IDR', devToolsHidden: false } as const;
+const prefs = { defaultTheme: 'dark', language: 'id', periodStartDay: 25, devToolsHidden: false } as const;
 
 /** Through JSON, as a file would be. */
 const roundTrip = (b: BackupFile): unknown => JSON.parse(JSON.stringify(b));
@@ -77,7 +77,6 @@ describe('backup round trip', () => {
   test('preferences go through sanitizePrefs (unknown keys and bad values dropped)', () => {
     assert.deepEqual(sanitizePrefs({ ...prefs, periodStartDay: 40, defaultTheme: 'neon', lastBackupAt: 'x', extra: 1 }), {
       language: 'id',
-      defaultCurrency: 'IDR',
       devToolsHidden: false,
     });
   });
@@ -205,7 +204,7 @@ describe('mock data (dev tool)', () => {
       assert.equal(salary.length, 1, key);
       assert.equal(new Date(salary[0].occurred_at).getDate(), 25, key);
       spent.push(summarize(rows, 'IDR', { key, startDay: 25 }).spent);
-      if (back === 1) assert.ok(rows.some((r) => r.currency === 'JPY'), 'a trip in yen');
+      assert.ok(rows.every((r) => r.currency === 'IDR'), `rupiah only: ${key}`);
     }
     const past = spent.slice(0, -1); // the current period is partial
     assert.ok(Math.max(...past) > Math.min(...past) * 1.5, `too flat: ${past.join(', ')}`);

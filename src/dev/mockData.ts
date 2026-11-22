@@ -6,7 +6,7 @@ import { resetDatabase } from '@/db/database';
 import { createTransaction } from '@/db/transactionsRepository';
 import type { CategoryKind } from '@/types/models';
 import { periodKey, periodLastDay, periodStart, shiftPeriodKey } from '@/utils/format';
-import type { Currency } from '@/utils/money';
+import { DEFAULT_CURRENCY } from '@/utils/money';
 
 /**
  * DEV ONLY (§12) — fills the database with believable history so the charts, the trend and the
@@ -68,13 +68,12 @@ export async function seedMockData(db: SQLiteDatabase, months: 6 | 12, startDay:
       summary.categories++;
     }
 
-    const add = async (kind: CategoryKind, key: TemplateKey, amount: number, at: Date, note = '', currency: Currency = 'IDR') => {
+    const add = async (kind: CategoryKind, key: TemplateKey, amount: number, at: Date, note = '') => {
       if (at.getTime() > now.getTime()) return; // nothing in the future
-      await createTransaction(db, { kind, amount, currency, categoryId: ids[key], note, occurredAt: at.toISOString() });
+      await createTransaction(db, { kind, amount, currency: DEFAULT_CURRENCY, categoryId: ids[key], note, occurredAt: at.toISOString() });
       summary.transactions++;
     };
-    const spend = (key: TemplateKey, amount: number, at: Date, currency: Currency = 'IDR') =>
-      add('EXPENSE', key, amount, at, currency === 'IDR' ? pick(NOTES[key] ?? ['']) : '', currency);
+    const spend = (key: TemplateKey, amount: number, at: Date) => add('EXPENSE', key, amount, at, pick(NOTES[key] ?? ['']));
 
     const current = periodKey(now, startDay);
     for (let back = months - 1; back >= 0; back--) {
@@ -116,12 +115,8 @@ export async function seedMockData(db: SQLiteDatabase, months: 6 | 12, startDay:
       for (let n = int(2, 4) + (big ? 2 : 0); n > 0; n--) await spend('shopping', rp(80_000, 600_000, mood), day(randomDay(), 15));
       if (rand() < 0.3) await spend('health', rp(60_000, 300_000), day(randomDay(), 11));
       if (big) for (let n = int(1, 2); n > 0; n--) await spend('gifts', rp(150_000, 500_000), day(randomDay(), 18));
-      // A trip abroad in a big month (yen), and an app subscription in dollars now and then.
-      if (big && back > 0) {
-        await spend('food', int(8, 34) * 100, day(randomDay(), 13), 'JPY');
-        await spend('transport', int(5, 20) * 100, day(randomDay(), 9), 'JPY');
-      }
-      if (back % 3 === 0) await add('EXPENSE', 'bills', 999, day(randomDay(), 21), 'App subscription', 'USD');
+      // An app subscription now and then. Rupiah only (§14.1).
+      if (back % 3 === 0) await add('EXPENSE', 'bills', 54_990, day(randomDay(), 21), 'App subscription');
     }
   });
   return summary;

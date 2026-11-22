@@ -13,12 +13,11 @@ import { listUsedCategories, searchTransactions, SEARCH_LIMIT } from '@/db/trans
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { useTransactionActions } from '@/hooks/useTransactionActions';
 import { useT } from '@/i18n';
-import { useAppStore } from '@/store/useAppStore';
 import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
 import { radius, spacing, type Theme } from '@/theme/themes';
 import { categoryName, nameMatches } from '@/utils/categoryNames';
 import { formatDayLabel } from '@/utils/format';
-import { formatMoney } from '@/utils/money';
+import { DEFAULT_CURRENCY, formatMoney } from '@/utils/money';
 import { groupByDay, totalsByCurrency } from '@/utils/summary';
 
 /**
@@ -33,7 +32,7 @@ export default function SearchScreen() {
   const c = theme.colors;
   const translator = useT();
   const { t, tp, lang } = translator;
-  const currency = useAppStore((s) => s.defaultCurrency);
+  const currency = DEFAULT_CURRENCY;
   const actions = useTransactionActions();
 
   const [text, setText] = useState('');

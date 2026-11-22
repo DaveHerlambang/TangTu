@@ -25,6 +25,38 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.2.0',
+    date: '2026-11-22',
+    en: {
+      summary: 'Logging a transaction is clearer now, and everything is counted in rupiah.',
+      sections: [
+        {
+          heading: 'improved',
+          items: [
+            'The add screen is laid out in the order you think: Expense or Income, then the amount in the middle, then the category.',
+            'The number pad opens only when you tap the amount, so you can see the whole screen first. Tap the arrow to put it away.',
+            'The day and a note now sit on one line. Press Save any time: if something is missing, TangTu shows you where.',
+            'Everything is counted in rupiah, so your totals are always complete. Transactions you logged in another currency stay as they were.',
+          ],
+        },
+      ],
+    },
+    id: {
+      summary: 'Mencatat transaksi sekarang lebih jelas, dan semuanya dihitung dalam rupiah.',
+      sections: [
+        {
+          heading: 'improved',
+          items: [
+            'Layar catat transaksi disusun sesuai urutan berpikirmu: Keluar atau Masuk, lalu nominal di tengah, lalu kategori.',
+            'Tombol angka baru muncul saat kamu ketuk nominalnya, jadi kamu bisa lihat seluruh layar dulu. Ketuk panahnya untuk menyembunyikan.',
+            'Tanggal dan catatan sekarang ada di satu baris. Tekan Simpan kapan saja: kalau ada yang kurang, TangTu menunjukkan bagiannya.',
+            'Semua dihitung dalam rupiah, jadi totalmu selalu lengkap. Transaksi yang sudah kamu catat dengan mata uang lain tetap seperti semula.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.1.1',
     date: '2026-11-22',
     en: {

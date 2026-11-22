@@ -8,6 +8,7 @@ import {
   entryToMinor,
   formatEntry,
   formatMoney,
+  formatQuickAmount,
   formatSignedMoney,
   maskMoney,
   minorToEntry,
@@ -36,6 +37,12 @@ describe('formatMoney: each currency in its usual style', () => {
     assert.equal(formatMoney(-1250, 'SGD'), '-S$12.50');
   });
   test('yen has no decimals', () => assert.equal(formatMoney(1250, 'JPY'), '¥1,250'));
+  test('quick-amount chips: number only, no zero decimals', () => {
+    assert.equal(formatQuickAmount(10_000, 'IDR'), '10.000');
+    assert.equal(formatQuickAmount(100_000, 'IDR'), '100.000');
+    assert.equal(formatQuickAmount(500, 'USD'), '5');
+    assert.equal(formatQuickAmount(250, 'EUR'), '2,50');
+  });
   test('signed and masked', () => {
     assert.equal(formatSignedMoney(25_000, 'IDR'), '+Rp 25.000');
     assert.equal(maskMoney(4_500_000, 'IDR'), 'Rp •.•••.•••');

@@ -25,6 +25,50 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.3.0',
+    date: '2026-11-22',
+    en: {
+      summary: 'Income sits next to spending on Home, search is right there, and the bell tells you more.',
+      sections: [
+        {
+          heading: 'new',
+          items: [
+            'Search right on Home: type a note or a category and the list changes as you type. Pick this month, last month, 3 months, all time or your own dates.',
+            'Tanggal tua: in the last week of your month, the bell tells you what is left and about how much you can spend a day.',
+            'Your year in TangTu: early in the new year, a look back at what you spent and earned.',
+          ],
+        },
+        {
+          heading: 'improved',
+          items: [
+            'Home shows what you spent and what came in side by side. What is left appears once you log income.',
+            'The month recap now shows your biggest purchase and which categories were higher or lower than usual.',
+          ],
+        },
+      ],
+    },
+    id: {
+      summary: 'Pemasukan sejajar dengan pengeluaran di Beranda, cari transaksi langsung di sana, dan bel punya lebih banyak cerita.',
+      sections: [
+        {
+          heading: 'new',
+          items: [
+            'Cari langsung di Beranda: ketik catatan atau kategori, daftarnya berubah sambil kamu mengetik. Pilih bulan ini, bulan lalu, 3 bulan, semua, atau tanggal pilihanmu.',
+            'Tanggal tua: di minggu terakhir bulanmu, bel memberi tahu sisa uangmu dan kira-kira berapa yang bisa dipakai per hari.',
+            'Setahun kamu di TangTu: di awal tahun baru, kilas balik pengeluaran dan pemasukanmu.',
+          ],
+        },
+        {
+          heading: 'improved',
+          items: [
+            'Beranda menampilkan pengeluaran dan pemasukan berdampingan. Sisa muncul setelah kamu mencatat pemasukan.',
+            'Rekap bulanan sekarang menunjukkan belanja terbesar dan kategori yang lebih tinggi atau lebih rendah dari biasanya.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.2.0',
     date: '2026-11-22',
     en: {

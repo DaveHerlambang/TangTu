@@ -48,8 +48,6 @@ export const en = {
   'calendar.goToDate': 'Go to date',
 
   // Home
-  'home.spentThis.month': 'Spent this month',
-  'home.spentThis.period': 'Spent this period',
   'home.empty.title.month': 'No spending yet this month',
   'home.empty.title.period': 'No spending yet this period',
   'home.empty.body': 'Every purchase you log shows up here, grouped by day.',
@@ -103,6 +101,8 @@ export const en = {
   // Plurals
   'count.transactions.one': '{count} transaction',
   'count.transactions.other': '{count} transactions',
+  'count.days.one': '{count} day',
+  'count.days.other': '{count} days',
 
   // Kinds
   'kind.EXPENSE': 'Expense',
@@ -226,8 +226,13 @@ export const en = {
   'dialog.deleteTx.body': '{amount} · {category}',
 
   // Home summary and list (§4)
-  'home.summary.incomeLeft': '{income} income · {left} left',
   'home.summary.others': 'Also {amounts} (not in totals)',
+  'home.this.month': 'This month',
+  'home.this.period': 'This period',
+  'home.summary.spent': 'Spent',
+  'home.summary.income': 'Income',
+  'home.summary.left': '{amount} left',
+  'home.summary.over': '{amount} more than your income',
   'home.details': 'Details',
   'home.stat.top': 'Top category',
   'home.stat.top.none': 'None yet',
@@ -411,15 +416,25 @@ export const en = {
   'error.backup.safetyCopy': "Couldn't save a safety copy of your current data, so nothing was changed. Free up some space and try again.",
   'error.backup.nothingToUndo': 'There is nothing to undo any more.',
   // Search (§5)
-  'screen.search': 'Search',
   'home.search': 'Search transactions',
-  'search.placeholder': 'Note or category',
+  'search.placeholder': 'Search notes or categories',
   'search.clear': 'Clear search',
-  'search.hint': 'Type a note or a category name, or pick categories to see their transactions.',
   'search.filter.hint': 'Filter by category',
   'search.none': 'Nothing found.',
   'search.spent': '{amount} spent',
   'search.capped': 'showing the newest {count}',
+  'search.exit': 'Close search',
+  'search.range.hint': 'Filter by date',
+  'search.range.this.month': 'This month',
+  'search.range.this.period': 'This period',
+  'search.range.last.month': 'Last month',
+  'search.range.last.period': 'Last period',
+  'search.range.three.month': '3 months',
+  'search.range.three.period': '3 periods',
+  'search.range.all': 'All time',
+  'search.range.pick': 'Pick dates…',
+  'search.range.from': 'From which day?',
+  'search.range.to': 'Until which day?',
 
   // Period start day (§3)
   'settings.startDay': 'Month starts on',
@@ -440,6 +455,16 @@ export const en = {
   'activity.recap.title': '{period} recap',
   'activity.recap.totals': 'Spent {spent} · income {income} · left {left}',
   'activity.recap.top': 'Top: {list}',
+  'activity.recap.spentOnly': 'Spent {spent}',
+  'activity.recap.biggest': 'Biggest: {amount} ({what})',
+  'activity.recap.higher': 'Higher than usual: {list}',
+  'activity.recap.lower': 'Lower than usual: {list}',
+  'activity.tanggalTua.title': 'Tanggal tua is here',
+  'activity.tanggalTua.body': '{days} left until {period} ends. You have {left} left, about {perDay} a day.',
+  'activity.yearRecap.title': 'Your {year} in TangTu',
+  'activity.yearRecap.totals': 'Spent {spent} · income {income}',
+  'activity.yearRecap.highest': 'Biggest month: {month}',
+  'activity.yearRecap.lowest': 'Quietest month: {month}',
   'activity.restore.title': 'Backup restored',
   'activity.restore.body': 'Your data was restored from the backup of {date} ({categories}, {transactions}).',
   'activity.restore.undo': 'You can undo this in Settings until {date}.',

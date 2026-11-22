@@ -1,8 +1,8 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { BackHandler, Keyboard, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AmountsToggle } from '@/components/AmountsToggle';
@@ -14,28 +14,31 @@ import { CategoryBadge } from '@/components/CategoryBadge';
 import { Icon } from '@/components/Icon';
 import { NotificationBell } from '@/components/NotificationBell';
 import { PeriodHeader } from '@/components/PeriodHeader';
+import { SearchPanel } from '@/components/SearchPanel';
 import { Touchable } from '@/components/Touchable';
 import { BRAND } from '@/constants/brand';
-import { listTransactions } from '@/db/transactionsRepository';
+import { listTransactions, SEARCH_LIMIT } from '@/db/transactionsRepository';
 import { useAmounts, useHideAmountsOnLeave } from '@/hooks/useAmounts';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { useHideOnScroll } from '@/hooks/useHideOnScroll';
 import { useTransactionActions } from '@/hooks/useTransactionActions';
+import { useTransactionSearch } from '@/hooks/useTransactionSearch';
 import { usePeriodSettings, useSelectedPeriod } from '@/hooks/usePeriodSettings';
 import { useT } from '@/i18n';
 import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
 import { radius, spacing, type Theme } from '@/theme/themes';
 import type { TransactionWithCategory } from '@/types/models';
 import { categoryName } from '@/utils/categoryNames';
-import { formatDayLabel, periodRange } from '@/utils/format';
+import { formatDayLabel, formatPeriodName, periodRange } from '@/utils/format';
 import { DEFAULT_CURRENCY, formatMoney } from '@/utils/money';
-import { groupByDay, summarize, type PeriodSummary } from '@/utils/summary';
+import { groupByDay, summarize, totalsByCurrency, type PeriodSummary } from '@/utils/summary';
 
 /**
- * Home (§4): the period header, the summary card (amounts hidden until the eye is tapped), the
- * period's transactions grouped by day (newest first, day total on the right), and the + button,
- * which slides away while scrolling down. Swipe a row left for Again · Edit · Delete; long-press for
- * the same actions in a sheet.
+ * Home (§4): the period header, the summary card (amounts hidden until the eye is tapped), the search
+ * field, the period's transactions grouped by day (newest first, day total on the right), and the +
+ * button, which slides away while scrolling down. Touching the search field turns search on: the card
+ * gives way to a one-line count, date and category chips appear, and the list shows the matches live.
+ * Cancel or Back ends it. Swipe a row left for Again · Edit · Delete; long-press for the same in a sheet.
  */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -43,9 +46,9 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const translator = useT();
-  const { t } = translator;
+  const { t, tp } = translator;
   const { startDay, kind: periodKind } = usePeriodSettings();
-  const { key } = useSelectedPeriod();
+  const { key, isCurrent } = useSelectedPeriod();
   const currency = DEFAULT_CURRENCY;
   useHideAmountsOnLeave();
 
@@ -53,7 +56,25 @@ export default function HomeScreen() {
   const { data, error, reload } = useDbQuery(load);
   const rows = useMemo(() => data ?? [], [data]);
   const summary = useMemo(() => summarize(rows, currency, { key, startDay }), [rows, currency, key, startDay]);
-  const sections = useMemo(() => groupByDay(rows, currency).map((g) => ({ ...g, data: g.items })), [rows, currency]);
+
+  const search = useTransactionSearch(key, startDay);
+  const results = search.results;
+  const shownRows = useMemo(() => (search.active ? (results ?? []) : rows), [search.active, results, rows]);
+  const sections = useMemo(() => groupByDay(shownRows, currency).map((g) => ({ ...g, data: g.items })), [shownRows, currency]);
+  const resultsSpent = useMemo(() => (results ? (totalsByCurrency(results).get(currency)?.spent ?? 0) : 0), [results, currency]);
+  // Back ends the search before it leaves Home.
+  const { active: searching, exit: exitSearch } = search;
+  useFocusEffect(
+    useCallback(() => {
+      if (!searching) return;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        Keyboard.dismiss();
+        exitSearch();
+        return true;
+      });
+      return () => sub.remove();
+    }, [searching, exitSearch]),
+  );
 
   const fab = useHideOnScroll();
   const [refreshing, setRefreshing] = useState(false);
@@ -71,15 +92,6 @@ export default function HomeScreen() {
         caption={BRAND.name}
         right={
           <>
-          <Touchable
-            onPress={() => router.push('/search')}
-            accessibilityRole="button"
-            accessibilityLabel={t('home.search')}
-            hitSlop={6}
-            style={({ pressed }) => [styles.headerButton, { opacity: pressed ? 0.7 : 1 }]}
-          >
-            <Icon name="search-outline" size={18} color={c.text} />
-          </Touchable>
           <NotificationBell />
           <Touchable
             onPress={() => router.push('/settings')}
@@ -98,8 +110,30 @@ export default function HomeScreen() {
           <AppText tone="danger">{t('home.loadError', { message: error.message })}</AppText>
         </Card>
       ) : null}
-      <SummaryCard summary={summary} onCountPress={scrollToList} />
-      {data && rows.length === 0 ? (
+      {search.active ? (
+        <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>
+          <AppText variant="label" tone="muted" accessibilityLiveRegion="polite">
+            {results === null
+              ? ' '
+              : [tp('count.transactions', results.length), resultsSpent > 0 ? t('search.spent', { amount: formatMoney(resultsSpent, currency) }) : null]
+                  .filter(Boolean)
+                  .join(' · ') + (results.length >= SEARCH_LIMIT ? ` · ${t('search.capped', { count: SEARCH_LIMIT })}` : '')}
+          </AppText>
+        </Animated.View>
+      ) : (
+        <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>
+          <SummaryCard summary={summary} caption={isCurrent ? t(periodKind === 'month' ? 'home.this.month' : 'home.this.period') : formatPeriodName(key, translator.lang)} onCountPress={scrollToList} />
+        </Animated.View>
+      )}
+      <Animated.View layout={LinearTransition.duration(200)}>
+        <SearchPanel search={search} />
+      </Animated.View>
+      {search.active && results && results.length === 0 ? (
+        <Card>
+          <AppText tone="muted">{t('search.none')}</AppText>
+        </Card>
+      ) : null}
+      {!search.active && data && rows.length === 0 ? (
         <Card style={{ gap: spacing.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <View style={styles.emptyIcon}>
@@ -126,6 +160,8 @@ export default function HomeScreen() {
         keyExtractor={(r) => String(r.id)}
         ListHeaderComponent={header}
         stickySectionHeadersEnabled={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.md, paddingBottom: 110 }}
         onScroll={fab.onScroll}
         scrollEventThrottle={fab.scrollEventThrottle}
@@ -137,7 +173,7 @@ export default function HomeScreen() {
             progressBackgroundColor={c.surface}
             onRefresh={async () => {
               setRefreshing(true);
-              await reload();
+              await Promise.all([reload(), search.reload()]);
               setRefreshing(false);
             }}
           />
@@ -191,19 +227,22 @@ export default function HomeScreen() {
 // ---------------------------------------------------------------------------
 
 /**
- * TracKar's dashboard card (§4): "Spent this month" + eye + Details → the big number in the money
- * colour → income · left → other currencies (not in totals) → Top category · Daily average · Transactions.
- * Every amount here follows the eye; screen readers hear "hidden" while it's closed. The stats are
- * buttons: the top category opens its screen, the average opens Charts, the count scrolls to the list.
+ * The dashboard card (§4, since 0.3.0): the period → **Spent | Income** side by side at the same size
+ * (TangTu tracks both) → a small "left" line → other currencies (not in totals) → Top category · Daily
+ * average · Transactions. "Left" shows only once there is income in the period: without it, it would just
+ * be minus the spending (§5, owner). Over the income it reads calmly, never red. Every amount follows
+ * the eye; screen readers hear "hidden" while it's closed. The stats are buttons: the top category opens
+ * its screen, the average opens Charts, the count scrolls to the list.
  */
-function SummaryCard({ summary: s, onCountPress }: { summary: PeriodSummary; onCountPress: () => void }) {
+function SummaryCard({ summary: s, caption, onCountPress }: { summary: PeriodSummary; caption: string; onCountPress: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { theme } = useTheme();
   const { t, tp, lang } = useT();
   const { spoken } = useAmounts();
-  const { kind } = usePeriodSettings();
   const top = s.byCategory[0] ?? null;
-  const caption = t(kind === 'month' ? 'home.spentThis.month' : 'home.spentThis.period');
+  const showLeft = s.income > 0;
+  const leftText = (f: (n: number, c: typeof s.currency) => string) =>
+    s.left >= 0 ? t('home.summary.left', { amount: f(s.left, s.currency) }) : t('home.summary.over', { amount: f(-s.left, s.currency) });
   const others = s.others
     .flatMap((o) => [o.spent > 0 ? formatMoney(o.spent, o.currency) : null, o.income > 0 ? `+${formatMoney(o.income, o.currency)}` : null])
     .filter((x): x is string => x !== null);
@@ -211,7 +250,7 @@ function SummaryCard({ summary: s, onCountPress }: { summary: PeriodSummary; onC
   return (
     <Card style={{ gap: spacing.md }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-        <AppText variant="label" tone="muted" style={{ flex: 1 }}>
+        <AppText variant="label" tone="muted" style={{ flex: 1 }} numberOfLines={1}>
           {caption}
         </AppText>
         <AmountsToggle variant="pill" />
@@ -230,18 +269,40 @@ function SummaryCard({ summary: s, onCountPress }: { summary: PeriodSummary; onC
 
       <View
         accessible
-        accessibilityLabel={`${caption}: ${spoken(s.spent, s.currency)}. ${t('home.summary.incomeLeft', {
-          income: spoken(s.income, s.currency),
-          left: spoken(s.left, s.currency),
-        })}`}
-        style={{ gap: 2 }}
+        accessibilityLabel={[
+          caption,
+          `${t('home.summary.spent')}: ${spoken(s.spent, s.currency)}`,
+          `${t('home.summary.income')}: ${spoken(s.income, s.currency)}`,
+          showLeft ? leftText(spoken) : null,
+        ]
+          .filter(Boolean)
+          .join('. ')}
+        style={{ gap: spacing.sm }}
       >
-        <AmountText variant="display" tone="accent" numberOfLines={1} adjustsFontSizeToFit>
-          {(f) => f(s.spent, s.currency)}
-        </AmountText>
-        <AmountText variant="caption" tone="muted">
-          {(f) => t('home.summary.incomeLeft', { income: f(s.income, s.currency), left: f(s.left, s.currency) })}
-        </AmountText>
+        <View style={{ flexDirection: 'row', gap: spacing.md }}>
+          <View style={styles.total}>
+            <AppText variant="caption" tone="muted">
+              {t('home.summary.spent')}
+            </AppText>
+            <AmountText variant="title" tone="accent" numberOfLines={1} adjustsFontSizeToFit>
+              {(f) => f(s.spent, s.currency)}
+            </AmountText>
+          </View>
+          <View style={styles.vDivider} />
+          <View style={styles.total}>
+            <AppText variant="caption" tone="muted">
+              {t('home.summary.income')}
+            </AppText>
+            <AmountText variant="title" tone={s.income > 0 ? 'success' : 'muted'} numberOfLines={1} adjustsFontSizeToFit>
+              {(f) => f(s.income, s.currency)}
+            </AmountText>
+          </View>
+        </View>
+        {showLeft ? (
+          <AmountText variant="caption" tone="muted">
+            {(f) => leftText(f)}
+          </AmountText>
+        ) : null}
         {others.length > 0 ? (
           <AppText variant="caption" tone="muted">
             {t('home.summary.others', { amounts: others.join(' · ') })}
@@ -339,6 +400,7 @@ const makeStyles = (t: Theme) =>
       borderTopColor: t.colors.border,
     },
     stat: { flex: 1, gap: 4, justifyContent: 'center' },
+    total: { flex: 1, gap: 2 },
     vDivider: { width: 1, backgroundColor: t.colors.border },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingTop: spacing.md, paddingBottom: spacing.sm },
     emptyIcon: {

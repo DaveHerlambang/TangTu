@@ -20,6 +20,8 @@ import { formatAgo } from '@/utils/format';
 
 const ICONS: Record<ActivityKind, IconName> = {
   recap: 'stats-chart-outline',
+  tanggal_tua: 'hourglass-outline',
+  year_recap: 'calendar-number-outline',
   restore: 'download-outline',
   restore_undone: 'arrow-undo-outline',
   whats_new: 'sparkles-outline',

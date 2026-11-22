@@ -223,15 +223,24 @@ on Home (TracKar's dashboard header).
 | `categories` | Manage: Expense / Income segmented, drag to reorder, add, edit (name, icon, tint), archive/restore |
 | `category/[id]` | One category: total for the period, its trend, its transactions |
 | `day/[date]` | One day's transactions (opened from the daily chart) |
-| `search` | Search (§5): note or category name, category chips; results from all time |
 | `notifications` | The bell's history (§8.7) |
 | `settings` | Theme, language (§6.5), period start day, categories, backup / restore / undo restore, last backup, What's new |
 | `whats-new` | User-facing release notes (TracKar's page and version picker) |
 
 ### Home
-- **Summary card** (TracKar's dashboard card): caption "Spent this month" + eye pill + "Details" pill →
-  **display** number in the money colour → caption "Rp X income · Rp Y left" → a row of 3 tappable stats:
+- **Summary card** (since 0.3.0, owner): caption = "This month" / "This period" (or the period's name when
+  another one is shown) + eye pill + "Details" pill → **Spent | Income side by side at the same size**
+  (`title`; spent in the money colour, income in `success`, muted at Rp 0) → a small line **"Rp Y left"**,
+  shown **only once the period has income** (without income it would just be minus the spending); over the
+  income it reads "Rp X more than your income", in muted text, never red (§5) → a row of 3 tappable stats:
   **Top category** (icon badge + name), **Daily average**, **Transactions**. Amounts start hidden (§8.6).
+- **Search on Home** (since 0.3.0, replaces the `search` screen and the magnifier): a field between the card
+  and the list. Touching it turns search on: the card gives way (fade) to one line "12 transactions · Rp 340.000
+  spent"; under the field, **date chips** — This month (the period Home shows) · Last month · 3 months · All
+  time · Pick dates… (from, then to) — and **category chips** (every category with transactions, archived
+  dimmed). The list shows the matches live (note `LIKE`, or a category name in either language), grouped by
+  day, newest first, max 200. "Cancel" or Back turns search off and resets it. "Month" reads "period" when the
+  start day isn't 1; when another period is shown, the first two chips carry its name.
 - **List:** newest first, grouped by day ("Today", "Yesterday", "Mon, 6 Oct") with the day total on the
   header's right. Row = category badge (§7) · category name (or the note as the headline with the category
   below — TracKar's "subject first" rule) · time · amount (expense in `text`, income in `success` with `+`).
@@ -271,7 +280,7 @@ Top to bottom, in the order you think it (layout since 0.2.0, owner-approved):
   calmly ("Rp 50.000 over", in `text`, not `danger`).
 - **Swipe left** on a row → **Again** (log the same amount and category now) · **Edit** · **Delete**;
   **long-press** → a small sheet with the same actions (TracKar's notes pattern).
-- **Search** (phase 6): by note or category name, with category filter chips.
+- **Search** (on Home since 0.3.0): by note or category name, with date chips and category chips.
 
 ---
 
@@ -480,9 +489,20 @@ a template brings its own tint. Editing an existing category uses the same edito
    `Rp •.•••.•••` (one dot per digit) until the eye pill is tapped; memory only, hidden again on app start,
    on leaving the screen and in the background; both layers mounted and cross-faded (240 ms, 4 pt drift);
    screen readers hear "hidden". Lists and charts are not hidden (they need a tap to reach).
-7. **The bell (in-app history, no OS notifications):** "September recap" at the start of a period (spent,
-   income, left, top 3 categories), "Backup restored", "What's new in x.y.z". Red dot until the bell is opened.
-   Rows store `kind` + `params` and are written out in the current language when shown (§6.5).
+7. **The bell (in-app history, no OS notifications):** red dot until opened; rows store `kind` + `params` and
+   are written out in the current language when shown (§6.5). Checked at launch and when the app comes back.
+   - **"September recap"** at the start of a period: spent · income · left (only "Spent X" when there was no
+     income), count, top 3 categories, **biggest purchase** (its note, else its category), and **"Higher /
+     Lower than usual: …"** for top categories at ≥ 1.25× / ≤ 0.75× their average over the 3 periods before
+     (only when all 3 have data). Nothing for an empty period.
+   - **"Tanggal tua is here"** (since 0.3.0): once per period, in its last **7 days** (today counted): "7 days
+     left until November 2026 ends. You have Rp 1.400.000 left, about Rp 200.000 a day." Only when the
+     period has income and something left — never bad news.
+   - **"Your 2026 in TangTu"** (since 0.3.0): once, in the first two periods of the new year (keys -01, -02):
+     the year's periods (YYYY-01…-12, so the start day applies) — spent, income, count, top 3 categories,
+     biggest month, quietest month (when two months had spending), biggest purchase.
+   - **"Backup restored"**, **"Restore undone"**, **"What's new in x.y.z"**.
+   - Not in the bell, on purpose (§5): budget alerts, streaks, "you haven't logged today", backup reminders.
 8. **Pull to refresh** on lists.
 
 ---
@@ -889,3 +909,19 @@ Still open:
 - Quick-amount chips: number only ("10.000", "100.000" — `formatQuickAmount`), one font size for all, no
   per-chip shrinking (owner: "Rp 100.000" looked untidy next to "Rp 10.000"). Screen readers still hear the
   full amount.
+
+**2026-11-22 — release 0.3.0 (MINOR)**
+- Owner (#1): Home's card shows **Spent | Income at the same size**; "left" is a small line, **hidden until the
+  period has income** (owner: no minus without income); over the income it's calm text. The bell's period
+  recap follows the same rule ("Spent X" only, when there was no income).
+- Owner (#8): **search moved onto Home** (field under the card; card fades to a one-line count; date chips This
+  month · Last month · 3 months · All time · Pick dates…; category chips; Cancel/Back ends it). The `search`
+  route and the header magnifier are gone. `searchTransactions` takes an optional `range`; the chips' ranges
+  come from `searchRange` (pure, tested); state lives in `useTransactionSearch`; UI in `SearchPanel`.
+- Owner (#9, "take all"): bell kinds **`tanggal_tua`** and **`year_recap`**, and a richer `recap` (`biggest`,
+  `compare`; optional, so 0.2.x rows still read). Choices made while building: tanggal tua = last 7 days,
+  needs income and something left; "usual" = average of the 3 periods before, only when all 3 have data,
+  thresholds 1.25× / 0.75×; the year recap is written in the first two periods of the new year only, for the
+  previous year's periods. Indonesian avoids judging words ("terbesar/terkecil", not "boros/hemat").
+  Recurring-transaction messages wait for recurring transactions (phase 7).
+

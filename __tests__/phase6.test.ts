@@ -21,6 +21,7 @@ import { en } from '@/i18n/en';
 import { makeTranslator } from '@/i18n/core';
 import { describeActivity } from '@/utils/activityText';
 import { nameMatches } from '@/utils/categoryNames';
+import { searchRange } from '@/utils/searchRange';
 
 import { rawTestDb, testDb } from './support/db';
 
@@ -214,5 +215,31 @@ describe('search', () => {
 });
 
 test('every new screen string exists (sanity: the dictionaries stay in step)', () => {
-  for (const key of ['screen.search', 'screen.notifications', 'screen.whatsNew', 'settings.startDay.sheetHint'] as const) assert.ok(en[key]);
+  for (const key of ['search.range.pick', 'screen.notifications', 'screen.whatsNew', 'settings.startDay.sheetHint'] as const) assert.ok(en[key]);
+});
+
+describe('search on Home (0.3.0): date chips', () => {
+  test('this / last / three periods follow the shown period and the start day; custom days in either order', () => {
+    const iso = (y: number, m: number, d: number) => new Date(y, m - 1, d).toISOString();
+    assert.deepEqual(searchRange('this', '2026-11', 25, null), { start: iso(2026, 10, 25), end: iso(2026, 11, 25) });
+    assert.deepEqual(searchRange('last', '2026-11', 1, null), { start: iso(2026, 10, 1), end: iso(2026, 11, 1) });
+    assert.deepEqual(searchRange('three', '2026-01', 1, null), { start: iso(2025, 11, 1), end: iso(2026, 2, 1) });
+    assert.equal(searchRange('all', '2026-11', 1, null), undefined);
+    assert.equal(searchRange('custom', '2026-11', 1, null), undefined);
+    const picked = { from: new Date(2026, 10, 3, 18), to: new Date(2026, 9, 12, 7) };
+    assert.deepEqual(searchRange('custom', '2026-11', 1, picked), { start: iso(2026, 10, 12), end: iso(2026, 11, 4) });
+  });
+
+  test('searchTransactions keeps to the range', async () => {
+    const db = await testDb();
+    const food = await createCategory(db, { kind: 'EXPENSE', name: null, templateKey: 'food', icon: 'fast-food', tint: 'peach' });
+    const add = (d: Date) => createTransaction(db, { kind: 'EXPENSE', amount: 10_000, currency: 'IDR', categoryId: food, note: 'x', occurredAt: d.toISOString() });
+    const oct31 = await add(new Date(2026, 9, 31, 23, 59));
+    const nov1 = await add(new Date(2026, 10, 1, 0, 0));
+    const find = async (range?: { start: string; end: string }) =>
+      (await searchTransactions(db, { text: '', nameMatchIds: [], categoryIds: [], range })).map((r) => r.id);
+    assert.deepEqual(await find(searchRange('this', '2026-11', 1, null)), [nov1]);
+    assert.deepEqual(await find(searchRange('last', '2026-11', 1, null)), [oct31]);
+    assert.deepEqual(await find(), [nov1, oct31]);
+  });
 });

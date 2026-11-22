@@ -5,6 +5,37 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.3.0 — 2026-11-22
+
+Home shows income next to spending, search lives on Home, and the bell has more to say.
+
+**CHANGED**
+- Home's summary card: Spent and Income side by side at the same size; "left" is a small line under them,
+  shown only once the period has income, and calm text (not red) when spending passes income.
+- Search moved onto Home: a field between the card and the list. Touching it swaps the card for a one-line
+  count, shows date chips (This month · Last month · 3 months · All time · Pick dates…) and category chips,
+  and the list filters live. Cancel or Back ends it.
+- The period recap in the bell adds the biggest purchase and which top categories were higher or lower than
+  usual; with no income it shows the spending alone.
+
+**NEW**
+- Bell: "Tanggal tua is here", once per period in its last 7 days, with what's left and about how much per
+  day (only with income and something left).
+- Bell: "Your 2026 in TangTu", the year recap, early in the new year.
+
+**REMOVED**
+- The separate search screen and the magnifier in Home's header (search is on Home now).
+
+**UNDER THE HOOD**
+- `searchTransactions` takes an optional date `range`; `searchRange` (pure) builds the chips' ranges;
+  `useTransactionSearch` + `SearchPanel`.
+- Activity kinds `tanggal_tua`, `year_recap`; `recap` params gain optional `biggest` and `compare`;
+  `buildTanggalTua`, `buildYearRecap`, `hasActivity`. Not backed up, so no backup change.
+- Tests: tanggal tua window, start day and no-bad-news rule; biggest purchase and "usual"; old recap rows;
+  year recap with start days 1 and 25; search date chips and ranges (143 tests).
+
+---
+
 ## 0.2.0 — 2026-11-22
 
 The add screen, redesigned, and rupiah only.

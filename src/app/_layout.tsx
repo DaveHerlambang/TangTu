@@ -72,7 +72,6 @@ function ThemedStack() {
         {/* Titles come from the screens themselves (the category's name, the day). */}
         <Stack.Screen name="category/[id]" />
         <Stack.Screen name="day/[date]" />
-        <Stack.Screen name="search" options={{ title: t('screen.search') }} />
         <Stack.Screen name="notifications" options={{ title: t('screen.notifications') }} />
         <Stack.Screen name="whats-new" options={{ title: t('screen.whatsNew') }} />
         <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />

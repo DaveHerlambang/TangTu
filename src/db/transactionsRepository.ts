@@ -153,10 +153,21 @@ export const SEARCH_LIMIT = 200;
  */
 export async function searchTransactions(
   db: SQLiteDatabase,
-  query: { text: string; nameMatchIds: readonly number[]; categoryIds: readonly number[]; limit?: number },
+  query: {
+    text: string;
+    nameMatchIds: readonly number[];
+    categoryIds: readonly number[];
+    /** [start, end) as ISO UTC strings (a period range, or picked days); absent = all time. */
+    range?: { start: string; end: string };
+    limit?: number;
+  },
 ): Promise<TransactionWithCategory[]> {
   const where: string[] = [];
   const params: (string | number)[] = [];
+  if (query.range) {
+    where.push('t.occurred_at >= ? AND t.occurred_at < ?');
+    params.push(query.range.start, query.range.end);
+  }
   const text = query.text.trim();
   if (text) {
     // `!` escapes LIKE's wildcards, so "50%" or "a_b" match literally.

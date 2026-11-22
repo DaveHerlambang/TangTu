@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { findRelease } from '@/constants/releaseNotes';
-import { addActivity, buildRecap, hasAnyTransactions } from '@/db/activityRepository';
+import { addActivity, buildRecap, buildTanggalTua, buildYearRecap, hasActivity, hasAnyTransactions } from '@/db/activityRepository';
 import { useAppStore } from '@/store/useAppStore';
 import { periodKey, shiftPeriodKey } from '@/utils/format';
 import { DEFAULT_CURRENCY } from '@/utils/money';
@@ -43,8 +43,40 @@ export async function announceNewVersionIfNeeded(db: SQLiteDatabase, version: st
   return addActivity(db, 'whats_new', { version }, { dedupeKey: `whatsnew:${version}` });
 }
 
+/**
+ * "Tanggal tua": once per period, in its last `TANGGAL_TUA_DAYS` days, when there is income and something
+ * left (`buildTanggalTua` decides). Checked on every launch in those days until it applies.
+ */
+export async function logTanggalTuaIfDue(db: SQLiteDatabase, now: Date = new Date()): Promise<boolean> {
+  const { periodStartDay } = useAppStore.getState();
+  const period = periodKey(now, periodStartDay);
+  const dedupeKey = `tanggaltua:${period}`;
+  if (await hasActivity(db, dedupeKey)) return false;
+  const params = await buildTanggalTua(db, period, periodStartDay, DEFAULT_CURRENCY, now);
+  return params ? addActivity(db, 'tanggal_tua', params, { dedupeKey, now }) : false;
+}
+
+/** The year recap is written in the first periods of the next year (keys -01 and -02) — later it's old news. */
+export const YEAR_RECAP_LAST_MONTH = 2;
+
+/** The recap of last year's periods, once, early in the new year; nothing for a year with no data. */
+export async function logYearRecapIfDue(db: SQLiteDatabase, now: Date = new Date()): Promise<boolean> {
+  const { periodStartDay } = useAppStore.getState();
+  const [year, month] = periodKey(now, periodStartDay).split('-').map(Number);
+  if (month > YEAR_RECAP_LAST_MONTH) return false;
+  const dedupeKey = `year:${year - 1}`;
+  if (await hasActivity(db, dedupeKey)) return false;
+  const params = await buildYearRecap(db, year - 1, periodStartDay, DEFAULT_CURRENCY);
+  return params ? addActivity(db, 'year_recap', params, { dedupeKey, now }) : false;
+}
+
 /** Runs every "something is due" check. Resolves whether anything was added. */
 export async function runActivityChecks(db: SQLiteDatabase, now: Date = new Date()): Promise<boolean> {
-  const results = [await announceNewVersionIfNeeded(db), await logPeriodRecapIfDue(db, now)];
+  const results = [
+    await announceNewVersionIfNeeded(db),
+    await logYearRecapIfDue(db, now),
+    await logPeriodRecapIfDue(db, now),
+    await logTanggalTuaIfDue(db, now),
+  ];
   return results.some(Boolean);
 }

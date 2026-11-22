@@ -121,7 +121,8 @@ first, non-goals, versioning, Touchable only, no push without asking, release ch
 TracKar's), `CHANGELOG.md`.
 
 **Step 8 — Git.** `create-expo-app` usually initialises git; make the first commit "Initialize TangTu".
-The owner creates the remote repository. **Never push without being asked.**
+The owner creates the remote repository (`https://github.com/DaveHerlambang/TangTu`). Branches, tags and
+commit messages follow §10.3. **Never push without being asked.**
 
 ---
 
@@ -184,7 +185,7 @@ order = chronological); "today", periods and display use **device local time**.
 ### Tables (SQLite, schema version = `PRAGMA user_version`, migrations append-only)
 | Table | Columns (essentials) | Notes |
 |---|---|---|
-| `Categories` | `id`, `name` (NULL for an untouched seed category), `seed_key` (seed categories only, e.g. `food`), `kind` (`EXPENSE` \| `INCOME`), `icon` (Ionicons name from §7.2), `tint` (key from §7.1), `position`, `archived_at` (NULL = active), `created_at` | User-defined. Active names unique per kind. |
+| `Categories` | `id`, `name` (NULL for an untouched template category), `template_key` (categories made from a §7.3 template, e.g. `food`; NULL otherwise), `kind` (`EXPENSE` \| `INCOME`), `icon` (Ionicons name from §7.2), `tint` (key from §7.1), `position`, `archived_at` (NULL = active), `created_at` | User-defined. Active names unique per kind. |
 | `Transactions` | `id`, `kind` (`EXPENSE` \| `INCOME`), `amount` (INTEGER > 0), `category_id` → Categories, `note`, `occurred_at`, `created_at`, `updated_at` | Sign comes from `kind`, never a negative amount. |
 | `Budgets` *(phase 7)* | `id`, `category_id`, `amount`, `from_period` | Applies from that period onward (like TracKar's salary history). |
 | `Activity` | `id`, `kind`, `params` (JSON), `ref_type`, `ref_id`, `dedupe_key`, `created_at` — in-app message history (§8.7) | Stores *what happened*, not sentences: text is rendered in the current language. Not backed up; cleared on restore. |
@@ -222,6 +223,7 @@ on Home (TracKar's dashboard header).
 | `categories` | Manage: Expense / Income segmented, drag to reorder, add, edit (name, icon, tint), archive/restore |
 | `category/[id]` | One category: total for the period, its trend, its transactions |
 | `day/[date]` | One day's transactions (opened from the daily chart) |
+| `search` | Search (§5): note or category name, category chips; results from all time |
 | `notifications` | The bell's history (§8.7) |
 | `settings` | Theme, language (§6.5), period start day, categories, backup / restore / undo restore, last backup, What's new |
 | `whats-new` | User-facing release notes (TracKar's page and version picker) |
@@ -241,7 +243,9 @@ on Home (TracKar's dashboard header).
    chips (10.000 · 20.000 · 50.000 · 100.000). *(Owner may choose the system keyboard instead — §14.)*
 2. `Expense | Income` segmented control (default Expense).
 3. **Category grid**: 4 per row, icon badge + name, **most-used in the last 60 days first**, last tile
-   "+ New" (creates a category inline, then selects it).
+   "+ New" (opens the category editor inline — pick a §7.3 template or start blank — then selects the new
+   category). The app starts with **no categories** (§7.3), so the very first purchase goes amount → "+ New" →
+   tap a template → Save; after that the 5-second path applies.
 4. Optional: date chips **Today · Yesterday · Pick…**, and a note.
 5. **Save** (primary pill) → closes, success haptic, toast "Rp 25.000 · Food & Drinks" with **Undo**.
 
@@ -366,8 +370,9 @@ font size up to **1.3×**; text boxes use `minHeight`, never `height`; big numbe
 - Plurals: English only ("1 transaction" / "3 transactions"); Indonesian has none ("3 transaksi").
 
 **Words stored as data**
-- **Seed categories** keep `name = NULL` and a `seed_key`; their name is shown from the dictionary, so they
-  follow the language. Renaming one stores the user's text in `name`, which is then shown as typed.
+- **Template categories** (made from a §7.3 template and not renamed) keep `name = NULL` and a
+  `template_key`; their name is shown from the dictionary, so they follow the language. Renaming one stores
+  the user's text in `name`, which is then shown as typed (owner, 2026-11-18).
 - **Bell messages** store `kind` + `params` and are rendered when shown (TracKar stored plain sentences;
   that would freeze them in one language).
 - **What's new** entries carry both texts: `{ version, date, en: {...}, id: {...} }`.
@@ -421,8 +426,14 @@ colour-blind separation (amber↔peach, mint↔teal), so charts use one hue (§9
 Not available in Ionicons (don't use): `piggy-bank`, `baby`; brand `logo-*` icons have no outline variant.
 Re-check names against the installed `@expo/vector-icons` glyph map if the SDK changes.
 
-### 7.3 Seed categories (first launch; all editable/archivable; names follow the language until renamed)
-| Kind | `seed_key` | English | Bahasa Indonesia | Icon | Tint |
+### 7.3 Category templates (owner, 2026-11-18)
+**Nothing is created automatically**: the app starts with no categories. These are **templates** offered
+when the user creates a category — tapping one fills in its name, icon and tint, and the user can change any
+of them before saving (icon from §7.2, tint from the 8 presets of §7.1). A category made from a template keeps
+following the app language until it is renamed (§6.5). A template whose name an active category of the same
+kind already shows is marked "Already added" and can't be picked again (active names are unique, §3).
+
+| Kind | `template_key` | English | Bahasa Indonesia | Icon | Tint |
 |---|---|---|---|---|---|
 | Expense | `food` | Food & Drinks | Makan & Minum | `fast-food` | `peach` |
 | Expense | `groceries` | Groceries | Belanja Dapur | `basket` | `mint` |
@@ -439,9 +450,11 @@ Re-check names against the installed `@expo/vector-icons` glyph map if the SDK c
 | Income | `other_income` | Other | Lainnya | `ellipsis-horizontal-circle` | `slate` |
 
 ### 7.4 Category editor
-Name field → **icon picker** (sheet with the §7.2 groups as sections, 6 per row, search by name) → **tint
-row** (8 round swatches, selected ring) → live preview of the badge. A new category gets the next tint in
-order so neighbours differ.
+Starts with the **template row** (§7.3, for the chosen kind) plus "Blank". Then: name field → **icon picker**
+(sheet with the §7.2 groups as sections, 6 per row, search by name) → **tint row** (the 8 preset tints of
+§7.1 as round swatches, selected ring; no free colour picker, so every badge stays readable in all three
+themes) → live preview of the badge. A blank category gets the next tint in order so neighbours differ;
+a template brings its own tint. Editing an existing category uses the same editor without the template row.
 
 ---
 
@@ -485,15 +498,81 @@ Later (owner decides): income vs spent per period (two series → legend + direc
 
 ---
 
-## 10. What's new & versioning (TracKar's rules)
+## 10. Versioning, What's new & release process (TracKar's rules, made strict)
 
-- **Semantic versioning, enforced:** PATCH = fixes/polish/dependency bumps; MINOR = new capability, changed
-  meaning of numbers, or a removed feature; MAJOR = breaks stored data/backups or changes the app's purpose.
-  `app.json`, `package.json`, `package-lock.json` versions match; `versionCode` automatic. Push back if the
-  owner proposes a number that doesn't fit the changes.
-- Every release: `CHANGELOG.md` (developer-facing) + a user-facing entry in `src/constants/releaseNotes.ts`
-  (New / Improved / Fixed, plain words) **in English and Indonesian**, shown on the What's new page in
-  the app's language.
+These rules are **binding**. Every change that reaches `master` is a release with a version that follows them.
+
+### 10.1 Three numbers — do not confuse them
+
+| Number | Where | Rule |
+|---|---|---|
+| **Version** `MAJOR.MINOR.PATCH` | `app.json` `expo.version`, `package.json` `version`, both `version` fields at the top of `package-lock.json` — **all must match** | Semantic, §10.2. Shown to the user (About, What's new). |
+| **versionCode** (Android build number) | EAS remote counter (`appVersionSource: "remote"`, `autoIncrement`) | Automatic. **Never edit by hand.** |
+| **Schema version** | `PRAGMA user_version` (SQLite), backup `schemaVersion` | Goes up only with a new migration. Separate from the app version. |
+
+### 10.2 What each part means for TangTu ([Semantic Versioning 2.0.0](https://semver.org))
+
+- **PATCH** (`x.y.Z`) — bug fixes, wording and translation fixes, visual polish, performance,
+  dependency/SDK patch bumps. **No new capability, and no number on screen changes meaning.**
+- **MINOR** (`x.Y.0`) — a new capability (screen, setting, chart, currency, category template, bell
+  message, icon/branding change), **or** a change to what an existing number or behaviour means (e.g. how a
+  period or a total is counted), **or** a removed feature. Saved data and older backups stay readable.
+- **MAJOR** (`X.0.0`) — older backups or stored data can no longer be restored/read as they were, or the
+  app's purpose or platform changes. Data safety (§11) means this should almost never happen.
+- Resetting: a MINOR bump sets PATCH to 0 (`0.3.4 → 0.4.0`); a MAJOR bump sets both to 0 (`1.7.2 → 2.0.0`).
+- One release = one version. Several changes ship together under **the highest bump among them** (a fix
+  plus a feature → MINOR). A version that has been merged to `master` is never reused or changed.
+
+**`0.x` — before the first user.** `0.y.z` versions are for the owner's own phone. The same PATCH/MINOR
+rules apply; MAJOR stays `0`, so a change that would be MAJOR becomes MINOR (and must still keep old
+backups restorable, §11). **`1.0.0`** is the first APK given to anyone else, after the §15 checklist.
+From then on MAJOR applies normally.
+
+**Claude must push back.** If the owner proposes a number that doesn't fit the content — a feature under
+a PATCH, a MAJOR for polish, `1.0.0` before the §15 checklist — say so, give the right number and a
+one-line reason, then follow the owner's decision if they insist. Also point out when a release is split
+wrongly (a feature hidden inside a patch).
+
+### 10.3 Git: branches, tags, commit messages
+
+- **Remote:** `origin` = `https://github.com/DaveHerlambang/TangTu`. **`master`** holds released versions
+  only; every commit on it belongs to a finished version.
+- **One branch per version:** `release/x.y.z` (e.g. `release/0.2.0`), created from `master` when work on
+  that version starts. All work for the version happens there. Release branches are kept after merging.
+- **Merge:** fast-forward `release/x.y.z` into `master` (`git merge --ff-only`), so `master` stays linear.
+- **Tag:** each merged version gets an annotated tag **`vX.Y.Z`** on `master`
+  (`git tag -a v0.2.0 -m "TangTu 0.2.0"`). The tag is how a version is found later.
+- **Commit messages are in English.**
+  - The **release commit** (the last commit on the branch, the one tagged): title `TangTu x.y.z`, a blank
+    line, the release's one-sentence summary (the English `summary` from `releaseNotes.ts`), then the
+    sections that apply — `NEW`, `CHANGED`, `FIXED`, `REMOVED`, `UNDER THE HOOD` — as `- ` bullets
+    written for the owner (what changed for the user, not which files), same headings as `CHANGELOG.md`.
+    End with the `Co-Authored-By` trailer the session gives. Only this release's changes.
+  - Any **earlier commits on the branch**: one short imperative line (`Add budget per category`), body optional.
+- **Never push without the owner asking.** Propose the commit message first.
+
+### 10.4 What's new
+
+Every release adds a user-facing entry to `src/constants/releaseNotes.ts` (New / Improved / Fixed, plain
+words, no technical details) **in English and Indonesian**, shown on the What's new page in the app's
+language and announced in the bell. `CHANGELOG.md` is the developer-facing record, with the heading
+`## x.y.z — YYYY-MM-DD` (the release date, same as in `releaseNotes.ts`).
+
+### 10.5 Release checklist (in this order)
+
+1. `git switch -c release/x.y.z master`.
+2. Build it; update **`docs/SPEC.md`** (whatever changed + a §16 log line), **`CHANGELOG.md`** and
+   **`src/constants/releaseNotes.ts`**.
+3. Pick the version by §10.2 and bump `app.json`, `package.json`, then re-sync the lockfile:
+   `npx --yes npm@10.9.8 install --package-lock-only`.
+4. All green: `npm run typecheck`, `npm test`, `npx expo lint`, `npx expo-doctor`,
+   `npx --yes npm@10.9.8 ci --dry-run --include=dev`, `npx expo export --platform android`; the exported
+   bundle contains no dev tools (no mock data, no dev gear).
+5. Propose the release commit message (§10.3). The owner decides.
+6. On the owner's go-ahead: commit, `git push -u origin release/x.y.z`, `git switch master`,
+   `git merge --ff-only release/x.y.z`, `git tag -a vX.Y.Z -m "TangTu x.y.z"`,
+   `git push origin master vX.Y.Z`.
+7. APK only when asked: `npx eas-cli@latest build -p android --profile preview`; report the link.
 
 ---
 
@@ -523,7 +602,7 @@ Later (owner decides): income vs spent per period (two series → legend + direc
 - **Tests kept in the repo** (`scripts/` or `__tests__/`), run against real SQLite (`node:sqlite` + Node
   type stripping): totals, period bucketing (start days 1/25/31), archive rules, most-used ordering,
   backup validation, migrations from every older schema, contrast of every theme token and tint, month/weekday
-  tables in both languages, seed categories following the language until renamed.
+  tables in both languages, template categories following the language until renamed.
 - Done = `tsc --noEmit`, `expo lint`, `expo-doctor`, `expo export` green.
 - Commit/push only when the owner asks; propose a patch-notes style commit message first.
 
@@ -533,7 +612,7 @@ Later (owner decides): income vs spent per period (two series → legend + direc
 
 1. **Setup & design system:** §0 steps 1–8; three themes, splash, **i18n (EN | ID) from the first screen**
    (retrofitting later is expensive), Settings → Theme and Language, contrast test.
-2. **Categories:** tables + seed (§7.3), badge component, manage screen with icon picker and tints.
+2. **Categories:** tables, templates (§7.3), badge component, manage screen with editor, icon picker and tints.
 3. **Core loop:** add/edit/delete with number pad, quick amounts, most-used grid, Undo; Home with period
    switcher, summary card and day-grouped list; FAB hide-on-scroll; swipe actions incl. **Again**.
 4. **Charts:** ranked bars, trend (hint when < 2 periods), daily; category and day screens.
@@ -547,28 +626,39 @@ Later (owner decides): income vs spent per period (two series → legend + direc
 ## 14. Decisions for the owner (ask before building the affected part)
 
 Answered 2026-11-18:
-1. **Currency: selectable, rupiah the default.** Still to settle before the Transactions table / currency
-   setting are built (phase 3): which currencies are offered, how decimals are stored (amounts stay
-   integers in the smallest unit), and what switching currency does to amounts already logged (relabel
-   only — no conversion — is the simple reading). Until then everything is rupiah (`CURRENCY_SYMBOL`).
+1. **Currency: selectable, rupiah the default** (owner, 2026-11-18):
+   - Offered: **IDR, USD, JPY, EUR, SGD** (for now).
+   - **Decimals where the currency has them** (USD/EUR/SGD cents; IDR/JPY whole). Amounts are stored as
+     integers in the smallest unit (`$4.50` = 450).
+   - Each written in its **usual style**: `Rp 1.250.000` · `$1,250.50` · `€1.250,50` · `S$1,250.50` · `¥1,250`.
+   - **One default currency in Settings**; each transaction stores its own currency and can be switched
+     on the add/edit screen (starts on the default).
+   - **Totals count only the default currency.** Other currencies show in lists in their own format and
+     as one line under the summary: "Also $12.50 · ¥3,000 (not in totals)". Charts count the default
+     currency, with a note about what's left out.
+   - Changing the default currency shows a warning and converts nothing (conversion: later). Since each
+     transaction keeps its own currency, history never changes meaning.
 2. **Default period start day: 1** (calendar months; the UI says "month" / "bulan").
 3. **Wallets: later** (phase 7).
 4. **Income tracked in v1** (Expense | Income; left = income − spent).
 6. **In-app number pad** for the amount (§4).
 
-Still open:
-5. Seed categories as in §7.3, or different? (ask before phase 2)
-7. *(Later)* app icon artwork; final name check before any public release.
-8. **Contrast gaps in TracKar's colours.** §6.1 checks meaningful text on `surface`, `background` **and**
-   `track`; TracKar only checks `surface`. Four TracKar values (kept exactly, as §6.1 says) miss the stricter
-   rule. The contrast test pins them as known gaps until the owner chooses: keep, or darken by one step:
+5. **Categories: the §7.3 list as written, but as templates, not created automatically.** Colour is one of
+   the 8 preset tints (changeable), icon changeable; template names follow the language until renamed.
+8. **Contrast: keep TracKar's exact values.** §6.1 checks meaningful text on `surface`, `background` **and**
+   `track`; TracKar only checks `surface`, and four TracKar values miss the stricter rule. The owner chose to
+   keep them; the contrast test lists them as accepted exceptions (pinned, so any further drop still fails).
+   For reference, the one-step-darker values that would pass:
 
-   | Theme · pair | Now | Suggested | Then |
+   | Theme · pair | Now | Would pass | Then |
    |---|---|---|---|
    | Cherry Blossom `textMuted` on `track` | `#7A6570` 4.47:1 | `#79646F` | 4.54:1 |
    | Cherry Blossom `success` on `track` | `#357A4B` 4.35:1 | `#347749` | 4.52:1 |
    | Cherry Blossom `danger` on `track` | `#C33F55` 4.21:1 | `#BB3C52` | 4.52:1 |
    | Light `outline` on `background` | `#8E94A3` 2.83:1 | `#898F9D` | 3.02:1 |
+
+Still open:
+7. *(Later)* app icon artwork; final name check before any public release.
 
 ---
 
@@ -580,7 +670,7 @@ Still open:
 - [ ] Archived categories leave the pickers but stay correct in history and charts.
 - [ ] Large font (1.3×) clips nothing — checked in **both languages**; the eye hides and re-hides as specified.
 - [ ] Every screen, dialog, toast and screen-reader label exists in English and Indonesian; switching
-  language applies at once; untouched seed categories and bell messages follow it.
+  language applies at once; untouched template categories and bell messages follow it.
 - [ ] Every destructive action confirms and/or offers Undo; backup → uninstall → restore brings everything back.
 - [ ] Release APK has no dev tools and no TracKar leftovers; `tsc`, lint, `expo-doctor`, export are green.
 
@@ -599,7 +689,7 @@ Still open:
 - **Copied later, in their phase** (they need tables that don't exist yet): `services/backup.ts` and
   `dev/mockData.ts` (phase 5), `EarningsTrend` → `SpendTrend` (phase 4), `NotificationBell` + the
   Activity table (phase 6). The dev gear has only "Nuke database" until mock data exists.
-  `MIGRATIONS` is empty; phase 2 adds the first migration (Categories + seed).
+  `MIGRATIONS` is empty; phase 2 adds the first migration (Categories).
 - Themes: `label` removed from the theme objects (names come from the dictionaries); tints added as
   `theme.tints[key] = { fill, ink }`.
 - i18n: flat typed dictionaries (`src/i18n/en.ts`, `id.ts satisfies Messages`), `useT()` → `{ t, tp, lang }`,
@@ -610,5 +700,153 @@ Still open:
 - Splash wordmark is 46 pt (TracKar's splash size) in `primaryText`, rather than the 26 pt `display` variant.
 - Tests live in `__tests__/` and run under plain Node (`npm test`); a resolve hook maps `@/` and
   extensionless imports. `__tests__/tsconfig.json` adds Node types for the tests only.
-- EAS: `eas init` (creating the Expo project `@daveherlambang/tangtu`) is left for the owner to run.
+- EAS: project `@daveherlambang/tangtu` created and linked (`extra.eas.projectId`
+  `263a805b-dc47-406d-9fb1-ae94471d1511`), on the owner's go-ahead.
+- Owner (2026-11-18): §7.3 kept as written but turned into **templates** — no categories are created on first
+  launch; the user creates them, starting from a template or blank, and can change the icon and the tint
+  (8 presets). Template names follow the language until renamed. `seed_key` renamed `template_key`.
+- Owner (2026-11-18): contrast — keep TracKar's exact values; the four gaps are accepted exceptions (§14.8).
 
+**2026-11-18 — phase 2 (categories)**
+- Migration v1: `Categories` (§3). No seed rows. Icon and tint are validated in code, not by CHECKs, so new
+  icons/tints never need a table rebuild; an unknown value reads as the fallback icon / `slate`.
+- **Name uniqueness** (active, per kind) compares every name a category can show under: a typed name, or an
+  untouched template's name in *both* languages — so "Makan & Minum" typed by hand clashes with an untouched
+  Food & Drinks template category. Case- and space-insensitive. Archived categories free their name;
+  restoring is refused while the name is taken.
+- Typing a template's own name (either language) back into the field keeps `name = NULL`, so it keeps
+  following the language.
+- A category's kind is fixed after creation (changing it would flip its transactions between spent/income).
+- Undo writes the exact previous row back (`putCategory`: same id, position, dates; never `INSERT OR REPLACE`).
+- `categoryUsage` returns 0 until phase 3 adds Transactions; "Delete" on a used category will then offer
+  Archive instead.
+- Domain errors carry a code + params; screens show `error.<code>` in the current language.
+- Icon names are in both dictionaries (`icon.*`): screen readers say them, and the icon search matches either
+  language ("kopi" and "coffee" both find the cup).
+- Editor is a modal route `category/edit` (`?id=` to edit, `?kind=` for new); `category/[id]` stays free for
+  the category stats screen (phase 4). Manage screen: tap to edit, grip to drag; archive/delete in the editor.
+- Not yet checked on a device or emulator (none on the dev machine).
+
+**2026-11-18 — phase 3 (core loop)**
+- Migration v2: `Transactions` with a `currency` column (§14.1); `category_id` is `ON DELETE RESTRICT`.
+  The transaction's kind must match its category's.
+- Money lives in `src/utils/money.ts` (formats, number pad logic); `formatRupiah` and `CurrencyField` are
+  gone (the pad replaces the text field).
+- **Number pad:** bottom row is `000 · 0 · ⌫` for IDR/JPY and `. · 0 · ⌫` (`,` for EUR) for cents
+  currencies; at most 2 decimals; long-press ⌫ clears. Quick amounts **replace** the amount: IDR
+  10.000 · 20.000 · 50.000 · 100.000; USD/EUR/SGD 5 · 10 · 20 · 50; JPY 500 · 1,000 · 2,000 · 5,000.
+  Switching currency keeps the typed digits (decimals dropped for IDR/JPY). The currency chip sits left
+  of the amount.
+- **Date:** the chosen day at the current clock time (new) or the original time (edit). Any day can be
+  picked, future included.
+- **"+ New"** on the category grid opens the category editor; the new category is selected on return.
+  Editing a transaction whose category was archived keeps that category on its grid.
+- **Again** logs the same kind, amount, currency and category, now, without the note.
+- **One totals function** (`src/utils/summary.ts` `summarize`): spent / income / left, top category and
+  daily average count the default currency only; `count` counts every transaction in the period. Daily
+  average = spent ÷ days so far in the current period (all days of a past one).
+- **Day headers** show that day's spending in the default currency, or `+income` when nothing was spent.
+- Home summary: the three stats are not tappable yet (phase 4 gives them destinations). The eye hides
+  every amount in the summary card, including the daily average.
+- Swipe buttons: Again (track), Edit (primary), Delete (danger with `surface` text — white fails on Dark).
+- Not yet checked on a device or emulator.
+
+**2026-11-19 — phase 4 (charts, category and day screens)**
+- Chart figures come from pure functions in `src/utils/summary.ts`, all built on `summarize`:
+  `rankCategories` (top 7 + Other), `trendKeys` + `trendPoints` (the trend), `spendByDay` (daily bars).
+  Tests check that trend points and the sum of the daily bars equal `summarize` for that period, for start
+  days 1, 25 and 31.
+- **Ranked bars:** bar length is relative to the largest category (the % gives the share of spent). "Other"
+  is only used when it would hold **two or more** categories (with 8, all 8 are shown — folding one would
+  only hide its name). Other currencies with spending show as "Not counted: $12.50 (other currencies)".
+  The line above says "Food & Drinks is 34% of your spending this month" (or "in September 2026" for a
+  past period). Shares are whole percentages; "<1%" for slivers.
+- **Trend:** window = up to 6 periods ending at the shown period (or the current one when a future period
+  is shown), starting at the period of the first transaction (TracKar's rule). Bars with 0 draw nothing.
+  Comparisons use the short month name ("Rp 240.000 more than Sep"). Fewer than 2 periods → the hint card.
+- **Daily bars:** the bar of the biggest day is `accent` and the line above names it ("Most on Sat, 11 Oct ·
+  Rp 450.000"); other days `outline`; today has a `text`-coloured outline (a 3 pt stub when nothing was
+  spent). The dashed average line is Home's **Daily average** (spent ÷ days so far in the current period),
+  so the two never disagree. Day numbers under every 7th bar from the period's first day. Every bar is a
+  button with a spoken label; future days can be opened too (future dates can be logged).
+- **Category screen** (`category/[id]`): shares the selected period (arrows + trend taps switch it for Home
+  and Charts too); total ("Spent in October 2026" / "Income in …" for an income category, in `success`),
+  share of all spending/income, count, other currencies, archived note; the category's own trend (from its
+  first transaction); its transactions by day with swipe/long-press actions; header pencil → editor. A
+  deleted category shows "This category no longer exists."
+- **Day screen** (`day/[date]`, local `YYYY-MM-DD`): title Today / Yesterday / "Mon, 6 Oct"; spent (display,
+  `accent`), income, other currencies; rows with the same actions. An invalid date shows a message.
+- **Home stats:** top category → `category/[id]`; daily average → Charts; transactions → scrolls to the first
+  day of the list. Disabled when there's nothing to open.
+- Amounts on Charts, the category and the day screens are not hidden by the eye (§8.6: charts and lists need
+  a tap to reach).
+- Fixed: `src/app/settings.tsx` had been saved double-encoded (UTF-8 read as Windows-1252), so the footer
+  and the currency list showed "Â·". Re-decoded; no other file was affected.
+- Not yet checked on a device or emulator (none on the dev machine): chart layout, the dashed line (SVG),
+  tick placement, scroll-to-list, Indonesian at 1.3×.
+
+**2026-11-19 — phase 5 (safety)**
+- TracKar's backup design, split in two: `src/db/backupRepository.ts` (format, validation, all SQL; runs
+  under the Node tests) and `src/services/backup.ts` (file, share sheet, document picker, safety copy,
+  preferences).
+- File: `{ app: "TangTu", format: 1, schemaVersion, exportedAt, prefs, tables: { Categories, Transactions } }`,
+  every column of every row (each transaction keeps its `currency`). `app` is a fixed string, not
+  `BRAND.name`, so renaming the app never orphans old backups. Prefs carried: theme, language, start day,
+  default currency, dev-gear hidden. Device markers (last backup, bell, recap) never travel.
+- Restore refuses: not a TangTu file · `format` or `schemaVersion` newer than the app · damaged (a table
+  that isn't a list of flat rows, a non-numeric version, an unreadable date) · empty. The replacement is
+  one exclusive transaction; any refused row (CHECK, missing category, a transaction whose kind differs
+  from its category's, a row with no known column) rolls everything back as "damaged". Columns map by name;
+  unknown ones are ignored. Preferences pass through `sanitizePrefs`. The shown period resets to the
+  current one.
+- Safety copy `pre-restore-backup.json` in the document directory, written and read back before anything
+  is replaced (restore refused if that fails); none when there is nothing to protect. Undo is offered for
+  7 days, in one step. If the restore itself fails the copy is removed (nothing changed, nothing to undo).
+- Settings → **Your data**: Export backup ("Last backup: 12 days ago", only after "Yes, saved"), Restore from
+  backup, Undo last restore (only while available, "Possible until 26 Nov 2026"); rows show a spinner
+  while working and the others are disabled.
+- The bell's "Backup restored" message (§8.7) waits for phase 6 (no Activity table yet); a toast says it.
+- **Mock data** (`src/dev/mockData.ts`, dev gear only): 6 or 12 periods for the current start day; resets
+  first; deterministic (seeded, same call on the same day = same data); 8 expense + 2 income template
+  categories; daily food, workday transport, Saturday groceries, bills on the 5th day, weekend fun, a few
+  shopping trips; a big month every 4th period, a quiet one now and then; salary on the start day with a
+  raise 3 periods ago; yen in big months and a dollar subscription every 3rd period; nothing in the future.
+  Written through `createTransaction`, so it obeys the same rules as the app.
+- SDK 58: `File.write()` returns a promise (sync in SDK 57).
+- Not yet checked on a device: the share sheet, the document picker, file writes, Indonesian at 1.3×.
+
+**2026-11-19 — phase 6 (polish)**
+- **Migration v3: `Activity`** as §3 describes (`kind`, `params` JSON, `dedupe_key`, `created_at`; `ref_type` /
+  `ref_id` kept for later use). Kinds: `recap`, `restore`, `restore_undone`, `whats_new`. Text is written out
+  when shown (`src/utils/activityText.ts`), so a row reads in whichever language is current; template
+  category names in a recap follow the language too (each top category is stored as a snapshot: id, name,
+  template key). Unknown kinds or unreadable params are skipped. History keeps the newest 50 rows, at most
+  60 days. Not backed up; cleared inside the restore transaction; the restore then writes "Backup restored"
+  (with "undo until …" when a safety copy was kept), Undo restore writes "Restore undone".
+- **Recap:** when a new period has started, the previous one's spent · income · left, count and top 3
+  categories (from `summarize`, default currency at the time), once per period (`lastRecapPeriod` marker,
+  set before writing); none for a period with nothing logged. Checked at launch and on return to the
+  foreground. Detail sheet → "Open charts" (Charts opens on that period).
+- **What's new:** `src/constants/releaseNotes.ts` with `{ version, date, en, id }` (§6.5); a test checks the
+  first entry equals the app version (`app.json` = `package.json`), the order, the dates, and that both
+  languages have the same sections. Page `whats-new` (TracKar's version stepper and series sheet), opened
+  from Settings → About and from the bell. The first launch of a new version writes it to the bell, except
+  on a fresh install with no data.
+- **Bell** on Home (TracKar's: red dot until opened; "New" rows outlined while you're on the screen).
+- **Search** (`search`, magnifier on Home's header next to the bell and settings): note `LIKE` (wildcards
+  escaped) or category name, matched in JS against every name the category can show (both languages for an
+  untouched template), plus multi-select category chips (every category with transactions, archived ones
+  dimmed). All time, newest first, max 200, grouped by day; same row actions as Home. The line above: count ·
+  spent in the default currency (`totalsByCurrency`, which `summarize` now builds on).
+- **Start day:** Settings → Tracking → "Month starts on · Day 25" → a 1–31 grid whose hint says history is
+  regrouped at once and nothing changes; 29–31 clamp. Picking a new day resets the shown period to the
+  current one.
+- `TextField` gained a `trailing` slot (search's clear button).
+- **Release APK not built yet:** waiting for the owner (version number and go-ahead for an EAS build).
+- Not yet checked on a device: all phase 6 screens, the keyboard on search, Indonesian at 1.3×.
+
+**2026-11-22 — release 0.1.0**
+- Owner: version rules written out as binding (§10): semantic versioning with `0.x` until the first user,
+  one `release/x.y.z` branch per version, fast-forward into `master`, annotated tag `vX.Y.Z`, English
+  patch-notes release commits. Remote `origin` = `https://github.com/DaveHerlambang/TangTu`.
+- Phases 1–6 released as **0.1.0** (dated 2026-11-22 in `CHANGELOG.md` and `releaseNotes.ts`); first push.

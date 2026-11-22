@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 
 import { useAmounts } from '@/hooks/useAmounts';
-import { formatRupiah, maskRupiah } from '@/utils/format';
+import { formatMoney, maskMoney, type Currency } from '@/utils/money';
 
 import { AppText } from './AppText';
 
@@ -23,7 +23,7 @@ export function useRevealProgress(): SharedValue<number> {
   return progress;
 }
 
-type Format = (amount: number) => string;
+type Format = (amount: number, currency: Currency) => string;
 type Props = Omit<ComponentProps<typeof AppText>, 'children'> & {
   /** Builds the text from a formatter, once with real digits and once with stars. */
   children: (format: Format) => string;
@@ -52,7 +52,7 @@ export function AmountText({ children, align = 'left', style, ...rest }: Props) 
       {/* The digits sit in the layout and size the box; the stars lie on top of them. */}
       <Animated.View style={shownStyle}>
         <AppText {...rest} style={textStyle}>
-          {children(formatRupiah)}
+          {children(formatMoney)}
         </AppText>
       </Animated.View>
       <Animated.View
@@ -62,7 +62,7 @@ export function AmountText({ children, align = 'left', style, ...rest }: Props) 
         style={[{ position: 'absolute', top: 0, left: 0, right: 0 }, hiddenStyle]}
       >
         <AppText {...rest} style={textStyle}>
-          {children(maskRupiah)}
+          {children(maskMoney)}
         </AppText>
       </Animated.View>
     </View>

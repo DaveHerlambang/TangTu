@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tangtu.app"
+      "bundleIdentifier": "com.tangtu.app",
+      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {
@@ -50,6 +51,16 @@
     "experiments": {
       "typedRoutes": true
     },
-    "owner": "daveherlambang"
+    "owner": "daveherlambang",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "263a805b-dc47-406d-9fb1-ae94471d1511"
+      }
+    }
   }
 }

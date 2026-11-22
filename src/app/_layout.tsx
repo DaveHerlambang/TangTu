@@ -19,6 +19,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { ThemedSplash } from '@/components/ThemedSplash';
 import { ToastHost } from '@/components/ToastHost';
 import { DATABASE_NAME, initializeDatabase } from '@/db/database';
+import { useActivityEvents } from '@/hooks/useActivityEvents';
 import { useHideAmountsInBackground } from '@/hooks/useAmounts';
 import { useT } from '@/i18n';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
@@ -44,6 +45,7 @@ function Loading() {
 
 function ThemedStack() {
   useHideAmountsInBackground();
+  useActivityEvents();
   const { theme } = useTheme();
   const { t } = useT();
   const c = theme.colors;
@@ -65,6 +67,16 @@ function ThemedStack() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ title: t('screen.settings') }} />
+        <Stack.Screen name="categories" options={{ title: t('screen.categories') }} />
+        <Stack.Screen name="category/edit" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        {/* Titles come from the screens themselves (the category's name, the day). */}
+        <Stack.Screen name="category/[id]" />
+        <Stack.Screen name="day/[date]" />
+        <Stack.Screen name="search" options={{ title: t('screen.search') }} />
+        <Stack.Screen name="notifications" options={{ title: t('screen.notifications') }} />
+        <Stack.Screen name="whats-new" options={{ title: t('screen.whatsNew') }} />
+        <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack>
       {__DEV__ && DevToolsGear ? <DevToolsGear /> : null}
       <ToastHost />

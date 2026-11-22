@@ -76,8 +76,12 @@ function findLiterals(name: string, text: string): string[] {
             const isOption = ts.isPropertyAssignment(parent) && parent.name.getText(source) === 'style';
             if (!isOption) found.push(`${at(n)} ${fn}("${n.text}")`);
           }
-          // Don't descend into t('key') calls: their argument is a key, not text.
-          if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 't') return;
+          // Don't descend into t('key') / tp('key', n) calls (also translator.t / translator.tp): their argument is a key.
+          if (ts.isCallExpression(n)) {
+            const callee = n.expression;
+            const fnName = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : '';
+            if (fnName === 't' || fnName === 'tp') return;
+          }
           ts.forEachChild(n, scan);
         };
         node.arguments.forEach(scan);

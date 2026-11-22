@@ -47,7 +47,8 @@ export function Button({
       {...rest}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      // A caller may give a fuller spoken label (e.g. "Restore Coffee" for a "Restore" button).
+      accessibilityLabel={rest.accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!isDisabled, busy: loading }}
       style={({ pressed }) => [
         {

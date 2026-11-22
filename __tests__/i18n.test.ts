@@ -31,10 +31,10 @@ describe('dictionaries', () => {
       assert.deepEqual(placeholders(id[key]), placeholders(en[key]), `placeholders differ for ${key}`);
     }
   });
-  test('plurals come in .one/.other pairs', () => {
+  test('every plural (a .one key) has its .other form', () => {
+    // Plurals are defined by their `.one` key; a lone `.other` (e.g. the "Other" icon group) is a plain key.
     for (const key of Object.keys(en)) {
       if (key.endsWith('.one')) assert.ok(`${key.slice(0, -4)}.other` in en, `${key} has no .other`);
-      if (key.endsWith('.other')) assert.ok(`${key.slice(0, -6)}.one` in en, `${key} has no .one`);
     }
   });
   test('Indonesian says "kamu", never "Anda"', () => {

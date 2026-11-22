@@ -1,6 +1,7 @@
 import { LANGUAGE_PREFS, type LanguagePref } from '@/i18n/core';
 import type { PersistedPrefs } from '@/store/useAppStore';
 import { THEME_ORDER, type ThemeName } from '@/theme/themes';
+import { isCurrency } from '@/utils/money';
 
 const isTheme = (v: unknown): v is ThemeName => typeof v === 'string' && (THEME_ORDER as readonly string[]).includes(v);
 const isLanguage = (v: unknown): v is LanguagePref => typeof v === 'string' && (LANGUAGE_PREFS as readonly string[]).includes(v);
@@ -18,6 +19,7 @@ export function sanitizePrefs(raw: unknown): Partial<PersistedPrefs> {
   if (isTheme(p.defaultTheme)) out.defaultTheme = p.defaultTheme;
   if (isLanguage(p.language)) out.language = p.language;
   if (isStartDay(p.periodStartDay)) out.periodStartDay = p.periodStartDay;
+  if (isCurrency(p.defaultCurrency)) out.defaultCurrency = p.defaultCurrency;
   if (typeof p.devToolsHidden === 'boolean') out.devToolsHidden = p.devToolsHidden;
   return out;
 }

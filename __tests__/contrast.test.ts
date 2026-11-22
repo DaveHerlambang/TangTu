@@ -24,11 +24,11 @@ const TEXT = 4.5;
 const CONTROL = 3;
 
 /**
- * Pairs where TracKar's values (kept exactly, §6.1) miss the brief's stricter rule, which also
- * checks `background` and `track` (TracKar checks `surface`). Waiting on the owner's decision —
- * see docs/SPEC.md §14. Each entry pins today's ratio, so any further drop still fails.
+ * Accepted exceptions (owner, 2026-11-18 — docs/SPEC.md §14.8): TracKar's exact values, which miss the
+ * stricter rule here (TangTu also checks `background` and `track`; TracKar checks `surface`). Each entry
+ * pins today's ratio, so any further drop still fails. Don't add to this list without asking the owner.
  */
-const KNOWN_GAPS: Record<string, number> = {
+const ACCEPTED_GAPS: Record<string, number> = {
   'sakura textMuted on track': 4.47, // #7A6570 on #F8E6EE; #79646F would give 4.54
   'sakura success on track': 4.35, // #357A4B on #F8E6EE; #347749 would give 4.52
   'sakura danger on track': 4.21, // #C33F55 on #F8E6EE; #BB3C52 would give 4.52
@@ -41,7 +41,7 @@ function expectPairs(theme: string, pairs: [fg: string, bg: string, min: number,
   for (const [fg, bg, min, what] of pairs) {
     const name = `${theme} ${what}`;
     const ratio = contrast(fg, bg);
-    const gap = KNOWN_GAPS[name];
+    const gap = ACCEPTED_GAPS[name];
     if (ratio >= min) continue;
     if (gap !== undefined && ratio.toFixed(2) === gap.toFixed(2)) continue;
     failures.push(`${name}: ${fg} on ${bg} is ${ratio.toFixed(2)}:1, needs ${min}:1`);

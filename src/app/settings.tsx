@@ -1,46 +1,192 @@
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import { useLocales } from 'expo-localization';
-import { useState, type ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/AppText';
-import { BottomSheet } from '@/components/BottomSheet';
 import { Card } from '@/components/Card';
 import { Icon, type IconName } from '@/components/Icon';
+import { ChoiceSheet } from '@/components/ChoiceSheet';
+import { StartDaySheet } from '@/components/StartDaySheet';
 import { ThemeSwatch } from '@/components/ThemeSwatch';
 import { Touchable } from '@/components/Touchable';
 import { BRAND } from '@/constants/brand';
 import { useT, type LanguagePref, type MessageKey } from '@/i18n';
 import { LANGUAGE_PREFS, resolveLanguage } from '@/i18n/core';
+import { formatDayMonth, formatDayMonthYear, formatTime } from '@/i18n/dates';
+import type { BackupFile } from '@/db/backupRepository';
+import { exportBackup, getRestoreUndo, pickBackup, restoreBackup, RESTORE_UNDO_DAYS, undoRestore, type RestoreUndo } from '@/services/backup';
 import { useAppStore } from '@/store/useAppStore';
+import { showToast } from '@/store/useToastStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { THEME_ORDER, radius, spacing, themes, type ThemeName } from '@/theme/themes';
-import { hapticTick } from '@/utils/haptics';
+import { errorAlert } from '@/utils/errorMessage';
+import { formatBackupAge } from '@/utils/format';
+import { CURRENCIES, formatMoney, type Currency } from '@/utils/money';
 
 const THEME_LABEL: Record<ThemeName, MessageKey> = { sakura: 'theme.sakura', light: 'theme.light', dark: 'theme.dark' };
 const LANGUAGE_LABEL: Record<LanguagePref, MessageKey> = { system: 'language.system', en: 'language.en', id: 'language.id' };
 
 /**
- * Settings (§4). Phase 1: Theme and Language. Later phases add the period start day, categories,
- * backup / restore / undo restore with "Last backup", and What's new.
+ * Settings (§4): categories and currency, theme and language, and your data — backup, restore and
+ * undo restore with "Last backup" (§11), and About: What's new and the version.
  */
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { t } = useT();
+  const translator = useT();
+  const { t, tp, lang } = translator;
   const c = theme.colors;
+  const db = useSQLiteContext();
   const defaultTheme = useAppStore((s) => s.defaultTheme);
   const setDefaultTheme = useAppStore((s) => s.setDefaultTheme);
   const language = useAppStore((s) => s.language);
   const setLanguage = useAppStore((s) => s.setLanguage);
-  const [sheet, setSheet] = useState<'theme' | 'language' | null>(null);
+  const defaultCurrency = useAppStore((s) => s.defaultCurrency);
+  const setDefaultCurrency = useAppStore((s) => s.setDefaultCurrency);
+  const [sheet, setSheet] = useState<'theme' | 'language' | 'currency' | 'startDay' | null>(null);
+  const startDay = useAppStore((s) => s.periodStartDay);
+  const setPeriodStartDay = useAppStore((s) => s.setPeriodStartDay);
+  const setSelectedPeriod = useAppStore((s) => s.setSelectedPeriod);
+  const lastBackupAt = useAppStore((s) => s.lastBackupAt);
+  const setLastBackupAt = useAppStore((s) => s.setLastBackupAt);
+  const [busy, setBusy] = useState<'export' | 'restore' | 'undo' | null>(null);
+  // What "Undo last restore" would bring back (the data from just before the latest restore).
+  const [undo, setUndo] = useState<RestoreUndo | null>(null);
+  const refreshUndo = useCallback(() => getRestoreUndo(db).then(setUndo), [db]);
+  useEffect(() => {
+    void refreshUndo();
+  }, [refreshUndo]);
+
+  const fail = (e: unknown) => {
+    const { title, message } = errorAlert(e, translator);
+    Alert.alert(title, message);
+  };
+  const counts = (n: { categories: number; transactions: number }) => ({
+    categories: tp('count.categories', n.categories),
+    transactions: tp('count.transactions', n.transactions),
+  });
+
+  const doExport = async () => {
+    setBusy('export');
+    try {
+      await exportBackup(db, t('settings.backup.shareTitle'));
+      // The share sheet can't tell "saved" from "cancelled", so ask. Only "Yes, saved" moves "Last backup".
+      Alert.alert(t('dialog.backupSaved.title'), t('dialog.backupSaved.body'), [
+        { text: t('dialog.backupSaved.no'), style: 'cancel' },
+        { text: t('dialog.backupSaved.yes'), onPress: () => setLastBackupAt(new Date().toISOString()) },
+      ]);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runRestore = async (backup: BackupFile) => {
+    setBusy('restore');
+    try {
+      await restoreBackup(db, backup);
+      await refreshUndo();
+      showToast({ message: t('toast.backup.restored') });
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** Restoring replaces everything, so it confirms first (§5), then keeps a safety copy for Undo. */
+  const doRestore = async () => {
+    setBusy('restore');
+    try {
+      const picked = await pickBackup(db);
+      if (!picked) return;
+      const { backup, summary } = picked;
+      Alert.alert(t('dialog.restore.title'), t('dialog.restore.body', { date: formatDayMonthYear(summary.exportedAt, lang), ...counts(summary) }), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('dialog.restore.confirm'),
+          style: 'destructive',
+          onPress: () => void runRestore(backup),
+        },
+      ]);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runUndoRestore = async () => {
+    setBusy('undo');
+    try {
+      await undoRestore(db);
+      showToast({ message: t('toast.backup.undone') });
+    } catch (e) {
+      fail(e);
+    } finally {
+      await refreshUndo();
+      setBusy(null);
+    }
+  };
+
+  const doUndoRestore = () => {
+    if (!undo) return;
+    const saved = `${formatDayMonth(undo.savedAt, lang)} ${formatTime(undo.savedAt)}`;
+    Alert.alert(t('dialog.undoRestore.title'), t('dialog.undoRestore.body', { date: saved, ...counts(undo) }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('dialog.undoRestore.confirm'),
+        style: 'destructive',
+        onPress: () => void runUndoRestore(),
+      },
+    ]);
+  };
+
+  /** Changing the default only changes what new entries start in and what totals count: warn, convert nothing. */
+  const pickCurrency = (currency: Currency) => {
+    setSheet(null);
+    if (currency === defaultCurrency) return;
+    Alert.alert(t('dialog.currency.title'), t('dialog.currency.body', { currency: t(`currency.${currency}`) }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('dialog.currency.confirm'), onPress: () => setDefaultCurrency(currency) },
+    ]);
+  };
 
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: insets.bottom + spacing.xl }}
     >
+      <Section title={t('settings.tracking')}>
+        <Row
+          icon="pricetags-outline"
+          label={t('screen.categories')}
+          detail={t('settings.categories.detail')}
+          onPress={() => router.push('/categories')}
+        />
+        <Divider />
+        <Row
+          icon="cash-outline"
+          label={t('settings.currency')}
+          detail={t('settings.currency.detail')}
+          value={defaultCurrency}
+          onPress={() => setSheet('currency')}
+        />
+        <Divider />
+        <Row
+          icon="calendar-outline"
+          label={t('settings.startDay')}
+          detail={t('settings.startDay.detail')}
+          value={t('settings.startDay.value', { day: startDay })}
+          onPress={() => setSheet('startDay')}
+        />
+      </Section>
+
       <Section title={t('settings.appearance')}>
         <Row
           icon="color-palette-outline"
@@ -57,6 +203,43 @@ export default function SettingsScreen() {
           value={t(LANGUAGE_LABEL[language])}
           onPress={() => setSheet('language')}
         />
+      </Section>
+
+      <Section title={t('settings.data')} footer={t('settings.data.footer', { days: RESTORE_UNDO_DAYS })}>
+        <Row
+          icon="cloud-upload-outline"
+          label={t('settings.backup')}
+          detail={t('settings.backup.last', { age: formatBackupAge(lastBackupAt, translator) })}
+          onPress={doExport}
+          busy={busy === 'export'}
+          disabled={busy !== null}
+        />
+        <Divider />
+        <Row
+          icon="download-outline"
+          label={t('settings.restore')}
+          detail={t('settings.restore.detail')}
+          onPress={doRestore}
+          busy={busy === 'restore'}
+          disabled={busy !== null}
+        />
+        {undo ? (
+          <>
+            <Divider />
+            <Row
+              icon="arrow-undo-outline"
+              label={t('settings.undoRestore')}
+              detail={t('settings.undoRestore.detail', { date: formatDayMonthYear(undo.until, lang) })}
+              onPress={doUndoRestore}
+              busy={busy === 'undo'}
+              disabled={busy !== null}
+            />
+          </>
+        ) : null}
+      </Section>
+
+      <Section title={t('settings.about')}>
+        <Row icon="sparkles-outline" label={t('settings.whatsNew')} detail={t('settings.whatsNew.detail')} onPress={() => router.push('/whats-new')} />
       </Section>
 
       <View style={{ alignItems: 'center', gap: 2 }}>
@@ -82,6 +265,29 @@ export default function SettingsScreen() {
           onPick={(name) => {
             setDefaultTheme(name);
             setSheet(null);
+          }}
+        />
+      )}
+      {sheet === 'currency' && (
+        <ChoiceSheet
+          title={t('settings.currency')}
+          hint={t('settings.currency.sheetHint')}
+          options={CURRENCIES.map((cur) => ({ key: cur, label: `${cur} · ${t(`currency.${cur}`)}`, detail: formatMoney(123_456, cur) }))}
+          value={defaultCurrency}
+          onClose={() => setSheet(null)}
+          onPick={pickCurrency}
+        />
+      )}
+      {sheet === 'startDay' && (
+        <StartDaySheet
+          value={startDay}
+          onClose={() => setSheet(null)}
+          onPick={(day) => {
+            setSheet(null);
+            if (day === startDay) return;
+            // Period keys mean something else with another start day: go back to the current one.
+            setPeriodStartDay(day);
+            setSelectedPeriod(null);
           }}
         />
       )}
@@ -118,81 +324,6 @@ function LanguageSheet({ value, onPick, onClose }: { value: LanguagePref; onPick
       onClose={onClose}
       onPick={onPick}
     />
-  );
-}
-
-interface ChoiceOption<K extends string> {
-  key: K;
-  label: string;
-  detail?: string;
-  leading?: ReactNode;
-}
-
-/** A bottom sheet with a single-choice list (TracKar's theme sheet, generalised). */
-function ChoiceSheet<K extends string>({
-  title,
-  hint,
-  options,
-  value,
-  onPick,
-  onClose,
-}: {
-  title: string;
-  hint: string;
-  options: ChoiceOption<K>[];
-  value: K;
-  onPick: (key: K) => void;
-  onClose: () => void;
-}) {
-  const { theme } = useTheme();
-  const c = theme.colors;
-  return (
-    <BottomSheet visible onClose={onClose}>
-      <View style={{ gap: spacing.sm }}>
-        <View style={{ marginBottom: spacing.xs }}>
-          <AppText variant="title">{title}</AppText>
-          <AppText variant="caption" tone="muted">
-            {hint}
-          </AppText>
-        </View>
-        {options.map((o) => {
-          const selected = o.key === value;
-          return (
-            <Touchable
-              key={o.key}
-              onPress={() => {
-                hapticTick();
-                onPick(o.key);
-              }}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              accessibilityLabel={o.detail ? `${o.label}, ${o.detail}` : o.label}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.md,
-                minHeight: 52,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                borderRadius: radius.md,
-                backgroundColor: selected || pressed ? c.track : 'transparent',
-              })}
-            >
-              {o.leading}
-              <View style={{ flex: 1 }}>
-                <AppText variant="body">{o.label}</AppText>
-                {o.detail ? (
-                  <AppText variant="caption" tone="muted">
-                    {o.detail}
-                  </AppText>
-                ) : null}
-              </View>
-              {selected ? <Icon name="checkmark" size={18} color={c.primaryText} /> : null}
-            </Touchable>
-          );
-        })}
-      </View>
-    </BottomSheet>
   );
 }
 
@@ -239,28 +370,33 @@ function Row({
   value,
   onPress,
   busy,
+  disabled,
 }: {
   icon: IconName;
   label: string;
   detail: string;
   value?: string;
   onPress: () => void;
+  /** Working on it: a spinner instead of the chevron. */
   busy?: boolean;
+  disabled?: boolean;
 }) {
   const { theme } = useTheme();
   return (
     <Touchable
       onPress={onPress}
-      disabled={busy}
+      disabled={busy || disabled}
       accessibilityRole="button"
+      accessibilityState={{ busy: !!busy, disabled: !!(busy || disabled) }}
       accessibilityLabel={value ? `${label}, ${value}` : label}
+      accessibilityHint={detail}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.md,
         padding: spacing.md,
         backgroundColor: pressed ? theme.colors.track : 'transparent',
-        opacity: busy ? 0.5 : 1,
+        opacity: disabled && !busy ? 0.5 : 1,
       })}
     >
       <RowIcon icon={icon} />
@@ -276,7 +412,7 @@ function Row({
           {value}
         </AppText>
       ) : null}
-      <Icon name="chevron-forward" size={16} />
+      {busy ? <ActivityIndicator size="small" color={theme.colors.textMuted} /> : <Icon name="chevron-forward" size={16} />}
     </Touchable>
   );
 }

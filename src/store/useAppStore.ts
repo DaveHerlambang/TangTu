@@ -6,6 +6,7 @@ import { sanitizePrefs } from '@/utils/sanitizePrefs';
 import type { LanguagePref } from '@/i18n/core';
 import type { ThemeName } from '@/theme/themes';
 import { DEFAULT_PERIOD_START_DAY } from '@/utils/format';
+import { DEFAULT_CURRENCY, type Currency } from '@/utils/money';
 
 /** Preferences that travel with a backup file (validated by `sanitizePrefs` on the way in). */
 export interface PersistedPrefs {
@@ -15,6 +16,8 @@ export interface PersistedPrefs {
   language: LanguagePref;
   /** Day of the month a period starts on, 1–31 (§3). 29–31 clamp to short months' last day. */
   periodStartDay: number;
+  /** Currency new transactions start in, and the one totals and charts count (§14.1). */
+  defaultCurrency: Currency;
   devToolsHidden: boolean;
 }
 
@@ -39,6 +42,7 @@ export const DEFAULT_PREFS: PersistedPrefs = {
   defaultTheme: 'sakura',
   language: 'system',
   periodStartDay: DEFAULT_PERIOD_START_DAY,
+  defaultCurrency: DEFAULT_CURRENCY,
   devToolsHidden: false,
 };
 
@@ -53,6 +57,13 @@ interface AppState extends PersistedState {
   /** The period Home and Charts show (§8.5); `null` = the current one. Not persisted: each launch starts on now. */
   selectedPeriod: string | null;
   setSelectedPeriod: (key: string | null) => void;
+  /**
+   * A category just made from the add-transaction form's "+ New" tile; the form selects it when it
+   * regains focus, then clears this. Not persisted.
+   */
+  pickedCategoryId: number | null;
+  setPickedCategoryId: (id: number | null) => void;
+  setDefaultCurrency: (currency: Currency) => void;
   setAmountsVisible: (visible: boolean) => void;
   setDefaultTheme: (name: ThemeName) => void;
   setLanguage: (language: LanguagePref) => void;
@@ -84,6 +95,9 @@ export const useAppStore = create<AppState>()(
       amountsVisible: false,
       selectedPeriod: null,
       setSelectedPeriod: (selectedPeriod) => set({ selectedPeriod }),
+      pickedCategoryId: null,
+      setPickedCategoryId: (pickedCategoryId) => set({ pickedCategoryId }),
+      setDefaultCurrency: (defaultCurrency) => set({ defaultCurrency }),
       setAmountsVisible: (amountsVisible) => set({ amountsVisible }),
       setDefaultTheme: (defaultTheme) => set({ defaultTheme }),
       setLanguage: (language) => set({ language }),
@@ -127,6 +141,7 @@ export const useAppStore = create<AppState>()(
         defaultTheme,
         language,
         periodStartDay,
+        defaultCurrency,
         devToolsHidden,
         notificationsSeenAt,
         lastAnnouncedVersion,
@@ -136,6 +151,7 @@ export const useAppStore = create<AppState>()(
         defaultTheme,
         language,
         periodStartDay,
+        defaultCurrency,
         devToolsHidden,
         notificationsSeenAt,
         lastAnnouncedVersion,

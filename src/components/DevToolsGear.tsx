@@ -7,6 +7,7 @@ import { Icon } from '@/components/Icon';
 import { MenuItem, PopoverMenu, usePopoverAnchor } from '@/components/PopoverMenu';
 import { Touchable } from '@/components/Touchable';
 import { resetDatabase } from '@/db/database';
+import { seedMockData } from '@/dev/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -23,6 +24,30 @@ export function DevToolsGear() {
   const invalidateData = useAppStore((s) => s.invalidateData);
   const { ref, anchor, open, close } = usePopoverAnchor();
   const [busy, setBusy] = useState(false);
+
+  /** Replaces everything with deterministic fake history (src/dev/mockData.ts). */
+  const fill = async (months: 6 | 12) => {
+    setBusy(true);
+    try {
+      const s = await seedMockData(db, months, useAppStore.getState().periodStartDay);
+      if (router.canDismiss()) router.dismissAll();
+      useAppStore.getState().setSelectedPeriod(null);
+      invalidateData();
+      Alert.alert('Mock data added', `${s.periods} periods: ${s.categories} categories, ${s.transactions} transactions.`);
+    } catch (e) {
+      Alert.alert('Mock data failed', e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmFill = (months: 6 | 12) => {
+    close();
+    Alert.alert('Replace everything with mock data?', 'All local data is deleted first. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Replace', style: 'destructive', onPress: () => void fill(months) },
+    ]);
+  };
 
   const nuke = async () => {
     setBusy(true);
@@ -93,7 +118,8 @@ export function DevToolsGear() {
         >
           Developer tools
         </Text>
-        {/* Phase 5: "Mock data · 6 months / 1 year" (src/dev/mockData.ts, rewritten for transactions). */}
+        <MenuItem icon="color-wand-outline" label="Mock data · 6 months" hint="Replace everything with fake history" onPress={() => confirmFill(6)} />
+        <MenuItem icon="color-wand-outline" label="Mock data · 1 year" hint="Replace everything with fake history" onPress={() => confirmFill(12)} />
         <MenuItem icon="trash-outline" label="Nuke database" hint="Delete all local data" destructive onPress={confirmNuke} />
         <MenuItem
           icon="eye-off-outline"

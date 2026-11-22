@@ -62,7 +62,12 @@ Non-negotiables (details in the spec):
   capability, changed meaning of numbers, or a removed feature; MAJOR = breaks stored data/backups or changes
   the app's purpose. `0.x` while building; `1.0.0` for the first APK given to a user. `app.json`,
   `package.json` and `package-lock.json` versions must match; `versionCode` is automatic. If the owner
-  proposes a number that doesn't fit, say so and recommend the right one.
+  proposes a number that doesn't fit, say so and recommend the right one. Full rules and the release
+  checklist: spec §10.
+- **Git follows the version.** Remote `origin` = `https://github.com/DaveHerlambang/TangTu`. Work for a
+  version happens on `release/x.y.z` (from `master`), is fast-forwarded into `master` and tagged `vX.Y.Z`.
+  `master` holds released versions only. Commit messages are English; the release commit is titled
+  `TangTu x.y.z` with the summary and `NEW / CHANGED / FIXED / REMOVED / UNDER THE HOOD` bullets (spec §10.3).
 - **Data safety.** SQLite migrations are append-only; every schema or preference change keeps old backups
   restorable. A used category is archived, never deleted.
 - **Code rules.** Never import `Pressable` (use `Touchable`); strict TypeScript; dev tools only behind

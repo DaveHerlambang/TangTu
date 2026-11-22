@@ -4,7 +4,7 @@ import { AppState } from 'react-native';
 
 import { useT } from '@/i18n';
 import { useAppStore } from '@/store/useAppStore';
-import { formatRupiah } from '@/utils/format';
+import { formatMoney, type Currency } from '@/utils/money';
 
 /**
  * The eye on the Home summary (§8.6). Amounts are hidden by default so they aren't on show the
@@ -17,7 +17,10 @@ export function useAmounts() {
   const hide = useCallback(() => setVisible(false), [setVisible]);
   const { t } = useT();
   /** What a screen reader says — never a row of asterisks. */
-  const spoken = useCallback((amount: number) => (visible ? formatRupiah(amount) : t('amounts.hidden')), [visible, t]);
+  const spoken = useCallback(
+    (amount: number, currency: Currency) => (visible ? formatMoney(amount, currency) : t('amounts.hidden')),
+    [visible, t],
+  );
   return { visible, toggle, hide, spoken };
 }
 

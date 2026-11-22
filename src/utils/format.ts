@@ -1,46 +1,9 @@
 /**
- * Money, periods and relative dates. Pure functions (no React Native imports) so the tests can run
+ * Periods and relative dates (money lives in `@/utils/money`). Pure functions (no React Native imports) so the tests can run
  * them under Node. Words come from a `Translator` and month/weekday names from `@/i18n/dates`.
  */
 import type { Language, Translator } from '@/i18n/core';
-import { formatDayMonth, formatDayMonthYear, formatMonthYear } from '@/i18n/dates';
-
-// ---------------------------------------------------------------------------
-// Money
-// TODO(phase 3): the currency is selectable (rupiah default, §14). Until the currency setting is
-// built, every amount is rupiah.
-
-/** The currency symbol shown before amounts and in amount fields. Same in both languages. */
-export const CURRENCY_SYMBOL = 'Rp';
-
-/**
- * Formats as "Rp 3.000.000" (or "-Rp 15.000" for negatives).
- * Done by hand rather than Intl so output is identical across Hermes builds/locales.
- */
-export const formatRupiah = (amount: number): string =>
-  `${amount < 0 ? '-' : ''}${CURRENCY_SYMBOL} ${formatThousands(Math.abs(amount))}`;
-
-/** "+Rp 25.000" for income, "-Rp 15.000" for negatives. */
-export const formatSignedRupiah = (amount: number): string =>
-  amount > 0 ? `+${formatRupiah(amount)}` : formatRupiah(amount);
-
-/**
- * The same amount with every digit dotted out, keeping the shape: 4500000 → "Rp •.•••.•••".
- * A round dot sits on the middle of the line (Nunito's "*" floats up like an exponent).
- */
-export const maskRupiah = (amount: number): string => formatRupiah(amount).replace(/\d/g, '•');
-
-/** Indonesian digit grouping with dots: 5000000 → "5.000.000". */
-export const formatThousands = (value: number): string =>
-  Math.round(value)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-/** Strips everything but digits: "5.000.000" → 5000000, "" → null. */
-export const parseDigits = (text: string): number | null => {
-  const digits = text.replace(/\D/g, '');
-  return digits ? Number(digits) : null;
-};
+import { formatDayMonth, formatDayMonthYear, formatMonthYear, formatWeekdayDayMonth, MONTHS_SHORT } from '@/i18n/dates';
 
 // ---------------------------------------------------------------------------
 // Periods (§3)
@@ -122,9 +85,33 @@ export const formatPeriodName = (key: string, lang: Language): string => {
   return formatMonthYear(y, m, lang);
 };
 
+/** "Oct" / "Okt" — the period's short name, for chart labels (six neighbouring periods never share one). */
+export const formatPeriodShort = (key: string, lang: Language): string => MONTHS_SHORT[lang][parseKey(key)[1]];
+
 /** The dates a period covers, e.g. "25 Sep – 24 Oct". */
 export const formatPeriodRange = (key: string, startDay: number, lang: Language): string =>
   `${formatDayMonth(periodStart(key, startDay), lang)} – ${formatDayMonth(periodLastDay(key, startDay), lang)}`;
+
+// ---------------------------------------------------------------------------
+// Days
+
+/** Local date key "YYYY-MM-DD" (the `day/[date]` route parameter, day groups). */
+export const localDayKey = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** "2026-10-06" → 00:00 local that day; null for anything that isn't a real calendar date. */
+export const parseDayKey = (key: string): Date | null => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return localDayKey(d) === key ? d : null;
+};
+
+/** [00:00, next 00:00) local of `day`, as ISO UTC strings — for SQL range queries on `occurred_at`. */
+export const dayRange = (day: Date): { start: string; end: string } => ({
+  start: new Date(day.getFullYear(), day.getMonth(), day.getDate()).toISOString(),
+  end: new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).toISOString(),
+});
 
 // ---------------------------------------------------------------------------
 // Relative dates
@@ -132,6 +119,14 @@ export const formatPeriodRange = (key: string, startDay: number, lang: Language)
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 /** Calendar days between two dates (not 24-hour blocks); rounding absorbs DST shifts. */
 const calendarDays = (from: Date, to: Date) => Math.round((startOfDay(to) - startOfDay(from)) / 86400000);
+
+/** "Today", "Yesterday", or "Mon, 6 Oct" — day headers and day titles. */
+export const formatDayLabel = (day: Date, { t, lang }: Translator, now: Date = new Date()): string => {
+  const days = calendarDays(day, now);
+  if (days === 0) return t('common.today');
+  if (days === 1) return t('common.yesterday');
+  return formatWeekdayDayMonth(day, lang);
+};
 
 /** "Just now", "12 min ago", "3 h ago", "Yesterday", or "5 Oct" — for the bell's history. */
 export const formatAgo = (iso: string, { t, lang }: Translator, now: Date = new Date()): string => {

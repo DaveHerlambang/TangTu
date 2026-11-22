@@ -8,11 +8,13 @@ import { fonts, radius, spacing } from '@/theme/themes';
 export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   /** Rendered inside the field, before the text (e.g. a currency prefix). */
   leading?: ReactNode;
+  /** Rendered inside the field, after the text (e.g. a clear button). */
+  trailing?: ReactNode;
   style?: StyleProp<ViewStyle>;
   ref?: Ref<TextInputInstance>;
 }
 
-export function TextField({ leading, style, onFocus, onBlur, ref, ...rest }: TextFieldProps) {
+export function TextField({ leading, trailing, style, onFocus, onBlur, ref, ...rest }: TextFieldProps) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [focused, setFocused] = useState(false);
@@ -53,6 +55,7 @@ export function TextField({ leading, style, onFocus, onBlur, ref, ...rest }: Tex
         }}
         style={{ flex: 1, height: '100%', fontFamily: fonts.semibold, fontSize: 15, color: c.text, padding: 0 }}
       />
+      {trailing}
     </View>
   );
 }

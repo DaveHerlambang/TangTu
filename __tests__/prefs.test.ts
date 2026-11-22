@@ -5,17 +5,18 @@ import { test } from 'node:test';
 import { sanitizePrefs } from '@/utils/sanitizePrefs';
 
 test('keeps known keys with valid values', () => {
-  assert.deepEqual(sanitizePrefs({ defaultTheme: 'dark', language: 'id', periodStartDay: 25, devToolsHidden: true }), {
+  assert.deepEqual(sanitizePrefs({ defaultTheme: 'dark', language: 'id', periodStartDay: 25, defaultCurrency: 'USD', devToolsHidden: true }), {
     defaultTheme: 'dark',
     language: 'id',
     periodStartDay: 25,
+    defaultCurrency: 'USD',
     devToolsHidden: true,
   });
 });
 
 test('drops unknown keys and invalid values', () => {
   assert.deepEqual(
-    sanitizePrefs({ defaultTheme: 'neon', language: 'fr', periodStartDay: 32, devToolsHidden: 'yes', lastBackupAt: 'x', evil: 1 }),
+    sanitizePrefs({ defaultTheme: 'neon', language: 'fr', periodStartDay: 32, defaultCurrency: 'GBP', devToolsHidden: 'yes', lastBackupAt: 'x', evil: 1 }),
     {},
   );
   assert.deepEqual(sanitizePrefs({ periodStartDay: 0 }), {});

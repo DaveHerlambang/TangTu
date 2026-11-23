@@ -255,7 +255,9 @@ Top to bottom, in the order you think it (layout since 0.2.0, owner-approved):
    (new and edit alike — owner, 0.2.0: see the whole screen first, open the pad yourself). Tapping the amount
    slides the in-app pad up above Save (blinking caret; steady with reduced motion); it has **000** and
    **⌫** keys, **quick amount** chips (10.000 · 20.000 · 50.000 · 100.000 — number only, one size) and **⌄** to hide it. The pad also
-   steps aside when a category is picked, the day chip or the note is touched, or Back is pressed.
+   steps aside when a category is picked, the day chip or the note is touched, or Back is pressed. The pad and
+   the keyboard never share the screen: opening the pad (by tapping the amount or by Save's nudge) closes the
+   keyboard.
 3. **Category grid**: 4 per row, icon badge + name, **most-used in the last 60 days first**, last tile
    "+ New" (opens the category editor inline — pick a §7.3 template or start blank — then selects the new
    category). The app starts with **no categories** (§7.3), so the very first purchase goes amount → "+ New" →
@@ -267,7 +269,10 @@ Top to bottom, in the order you think it (layout since 0.2.0, owner-approved):
    with something missing, it takes you there, calmly (primary-text colour, never red, §5): no amount → the
    pad opens, the amount shakes and "Enter the amount first" replaces its hint; no category → the pad closes,
    the grid scrolls into view and shakes, and "Pick one to save" shows under its label. Warning haptic; the
-   line is announced to screen readers; no shake with reduced motion. The line goes once that part is filled.
+   line is announced to screen readers; no shake with reduced motion. The line goes once that part is filled,
+   and stays gone: emptying the amount again doesn't bring it back until Save is pressed again.
+6. The category grid shows only the chosen kind's categories, also in the moment right after Expense | Income
+   is switched. After Delete, the form keeps showing the deleted transaction while it slides away.
 
 ---
 
@@ -670,6 +675,11 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
 - Routes only in `src/app/`; `@/` → `src/`; all SQL in `src/db/*Repository.ts`; screens read through
   `useDbQuery` (re-runs on focus and on a `dataVersion` bump after writes).
 - Strict TypeScript; never import `Pressable` (use `Touchable`); keyboard via `react-native-keyboard-controller`.
+- **A screen opens once:** every screen on the root stack is declared in `src/app/_layout.tsx` with
+  `dangerouslySingular`, so a double tap (or a slow phone) brings the open screen forward instead of stacking a
+  copy. `true` keys a screen by its path (`[id]`, `[date]`); a screen keyed by a query parameter
+  (`category/edit` by `id`, `whats-new` by `version`) passes a function. A test checks every route is declared
+  and singular; no debounce timers.
 - **Formatting:** `.prettierrc` (single quotes, width 150, trailing commas, `endOfLine: auto` because git turns
   files into CRLF on Windows) — `npx prettier --check <files>`. Format what you touch only when the file was
   already clean; a few files aren't, and mass-formatting them would bury real changes.
@@ -995,4 +1005,17 @@ Still open:
 - B6: past the income the bell's recap says "Z more than your income", like Home.
 - K2: `errorAlert`'s fallback and `home.loadError` no longer show technical messages.
 - K3: `.prettierrc` added (§12); `endOfLine: auto` because of CRLF working copies.
+
+**2026-11-23 — release 0.4.2 (PATCH): the add / edit screen and navigation (docs/AUDIT-0.4.0.md, release 2 of its plan)**
+- B10 (owner, on the phone): a double tap on "+ New" opened two category editors. Every root-stack screen is
+  now `dangerouslySingular` (§12). Read from expo-router 58.0.32's source: `router.push` goes through a reducer,
+  so a second tap sees the screen the first one opened, and the stack router moves that route to the top
+  instead of pushing a new one. Not a debounce: a time window can be shorter than a slow phone's lag.
+- B1: opening the pad closes the keyboard (`KeyboardController.dismiss`), wherever it opens from.
+- B3: the "missing" line is cleared once its part is filled (state adjusted while rendering).
+- B4: `update` in the form is functional, so two quick key taps both count.
+- B7: after Delete the form keeps the last copy of the transaction while the modal closes.
+- B8: the form's category grid filters by the chosen kind; `useDbQuery` unchanged (emptying its data would
+  make Home flash blank on every period change).
+- B9 (list and search panel overlapping for ~0.2 s): left unchanged until it's seen on the phone.
 

@@ -25,6 +25,42 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.4.2',
+    date: '2026-11-23',
+    en: {
+      summary: 'Smoother adding and editing, and screens that open only once.',
+      sections: [
+        {
+          heading: 'fixed',
+          items: [
+            'Tapping twice quickly no longer opens the same screen twice.',
+            'Opening the number pad closes the keyboard, so you can see the amount you type.',
+            '"Enter the amount first" no longer comes back by itself.',
+            'Quick taps on the number pad all count.',
+            'Deleting a transaction no longer flashes an empty screen.',
+            'Switching between Expense and Income shows the right categories straight away.',
+          ],
+        },
+      ],
+    },
+    id: {
+      summary: 'Menambah dan mengubah transaksi lebih mulus, dan layar hanya terbuka sekali.',
+      sections: [
+        {
+          heading: 'fixed',
+          items: [
+            'Mengetuk dua kali dengan cepat tidak lagi membuka layar yang sama dua kali.',
+            'Membuka tombol angka menutup keyboard, jadi nominal yang kamu ketik tetap terlihat.',
+            '"Isi nominalnya dulu" tidak lagi muncul sendiri.',
+            'Ketukan cepat di tombol angka semuanya terhitung.',
+            'Menghapus transaksi tidak lagi memunculkan layar kosong sekejap.',
+            'Pindah antara Keluar dan Masuk langsung menampilkan kategori yang benar.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.4.1',
     date: '2026-11-23',
     en: {

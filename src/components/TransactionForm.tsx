@@ -2,7 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Alert, BackHandler, View } from 'react-native';
-import { KeyboardAwareScrollView, KeyboardStickyView } from 'react-native-keyboard-controller';
+import { KeyboardAwareScrollView, KeyboardController, KeyboardStickyView } from 'react-native-keyboard-controller';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -136,7 +136,10 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
 
   const loadExisting = useCallback((db: SQLiteDatabase) => (editId === null ? Promise.resolve(null) : getTransaction(db, editId)), [editId]);
   const existingQuery = useDbQuery(loadExisting);
-  const existing = existingQuery.data ?? null;
+  // After Delete the row is gone, and the re-read would empty the screen while it slides away: keep the
+  // last copy for those frames (0.4.2, B7).
+  const [deleted, setDeleted] = useState<Awaited<ReturnType<typeof getTransaction>>>(null);
+  const existing = existingQuery.data ?? deleted;
   const db = existingQuery.db;
 
   // The form = what was loaded (blank for a new one) + the user's edits (`form`, null until the first edit).
@@ -165,7 +168,16 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
     [existing],
   );
   const f = form ?? loaded;
-  const update = (patch: Partial<Form>) => f && setForm({ ...f, ...patch });
+  /**
+   * Edits build on the latest form, not the one this render saw: two quick taps that land before a re-render
+   * would otherwise both start from the same entry and one digit would be lost (0.4.2, B4).
+   */
+  const update = (patch: Partial<Form> | ((prev: Form) => Partial<Form>)) =>
+    setForm((prev) => {
+      const base = prev ?? loaded;
+      if (!base) return prev;
+      return { ...base, ...(typeof patch === 'function' ? patch(base) : patch) };
+    });
 
   // A category just made through "+ New" is selected when we come back (see the category editor).
   const [pickedId, setPickedId] = useState<number | null>(null);
@@ -184,7 +196,9 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
   const loadCategories = useCallback((d: SQLiteDatabase) => listCategoriesByUse(d, kind), [kind]);
   const { data: active } = useDbQuery(loadCategories);
   const categories = useMemo(() => {
-    const list = active ?? [];
+    // Right after Expense | Income is switched, the last read (of the other kind) is still here until the new
+    // one lands: show only this kind's categories, never the old grid for a moment (0.4.2, B8).
+    const list = (active ?? []).filter((cat) => cat.kind === kind);
     // Editing a transaction whose category was archived: keep it on the grid so it stays selected.
     if (existing && existing.kind === kind && !list.some((cat) => cat.id === existing.category_id)) return [existing.category, ...list];
     return list;
@@ -212,6 +226,9 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
   const padProgress = useSharedValue(0);
   const padHeight = useSharedValue(0);
   useEffect(() => {
+    // The pad and the keyboard never share the screen: with both up, the amount was pushed out of sight while
+    // you typed it (0.4.2, B1). Covers every way the pad opens, Save's nudge included.
+    if (padOpen) void KeyboardController.dismiss();
     padProgress.set(
       withTiming(padOpen ? 1 : 0, {
         duration: reduceMotion ? 0 : PAD_MS,
@@ -240,6 +257,9 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
 
   const amount = entryToMinor(f.entry, f.currency);
   const category = categories.find((cat) => cat.id === categoryId) ?? null;
+  // Once the part Save asked for is filled, its line is gone for good: emptying the amount again with ⌫ doesn't
+  // bring it back without another Save (§4; 0.4.2, B3). Adjusting state while rendering, as React documents.
+  if ((missing === 'amount' && amount > 0) || (missing === 'category' && category !== null)) setMissing(null);
   const amountMissing = missing === 'amount' && amount === 0;
   const categoryMissing = missing === 'category' && category === null;
   const today = startOfDay(new Date());
@@ -341,8 +361,9 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
           onPress: async () => {
             try {
               const removed = await deleteTransaction(db, existing.id);
-              invalidate();
+              setDeleted(existing);
               router.back();
+              invalidate();
               showToast({
                 message: t('toast.tx.deleted'),
                 actionLabel: t('common.undo'),
@@ -632,8 +653,8 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
             >
               <NumberPad
                 currency={f.currency}
-                onKey={(key) => update({ entry: pressKey(f.entry, key, f.currency) })}
-                onQuick={(minor) => update({ entry: minorToEntry(minor, f.currency) })}
+                onKey={(key) => update((prev) => ({ entry: pressKey(prev.entry, key, prev.currency) }))}
+                onQuick={(minor) => update((prev) => ({ entry: minorToEntry(minor, prev.currency) }))}
                 onHide={() => setPadOpen(false)}
               />
             </View>

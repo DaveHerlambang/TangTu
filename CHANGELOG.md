@@ -5,6 +5,26 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.4.2 — 2026-11-23
+
+The add / edit screen and navigation (docs/AUDIT-0.4.0.md, release 2).
+
+**FIXED**
+- Tapping twice quickly no longer opens the same screen twice (reported on the phone: "+ New" opened two
+  category editors that both had to be closed). Applies to every screen.
+- Opening the number pad closes the keyboard, so the amount stays in sight while you type it.
+- "Enter the amount first" no longer comes back by itself after the amount is filled and then emptied.
+- Two quick taps on the number pad both count.
+- Deleting a transaction no longer shows an empty screen while it closes.
+- Switching Expense | Income no longer shows the other kind's categories for a moment.
+
+**UNDER THE HOOD**
+- Root-stack screens use Expo Router's `dangerouslySingular`; `__tests__/navigation.test.ts` checks every
+  route is declared in `src/app/_layout.tsx` and singular.
+- Tests: 169.
+
+---
+
 ## 0.4.1 — 2026-11-23
 
 Fixes from the 0.4.0 audit that tests can prove (docs/AUDIT-0.4.0.md, release 1).

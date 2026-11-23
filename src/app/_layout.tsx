@@ -65,17 +65,30 @@ function ThemedStack() {
           animation: 'slide_from_right',
         }}
       >
+        {/*
+          Every screen is singular (0.4.2, B10): a second tap while the first screen is still opening brings the
+          same screen forward instead of stacking a copy — on a slow phone "+ New" opened two editors. `true` keys
+          a screen by its path ([id], [date]); the editors keyed by a query parameter say which one.
+        */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options={{ title: t('screen.settings') }} />
-        <Stack.Screen name="categories" options={{ title: t('screen.categories') }} />
-        <Stack.Screen name="category/edit" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="settings" options={{ title: t('screen.settings') }} dangerouslySingular />
+        <Stack.Screen name="categories" options={{ title: t('screen.categories') }} dangerouslySingular />
+        <Stack.Screen
+          name="category/edit"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          dangerouslySingular={(name, params) => `${name}:${String(params.id ?? 'new')}`}
+        />
         {/* Titles come from the screens themselves (the category's name, the day). */}
-        <Stack.Screen name="category/[id]" />
-        <Stack.Screen name="day/[date]" />
-        <Stack.Screen name="notifications" options={{ title: t('screen.notifications') }} />
-        <Stack.Screen name="whats-new" options={{ title: t('screen.whatsNew') }} />
-        <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="category/[id]" dangerouslySingular />
+        <Stack.Screen name="day/[date]" dangerouslySingular />
+        <Stack.Screen name="notifications" options={{ title: t('screen.notifications') }} dangerouslySingular />
+        <Stack.Screen
+          name="whats-new"
+          options={{ title: t('screen.whatsNew') }}
+          dangerouslySingular={(name, params) => `${name}:${String(params.version ?? '')}`}
+        />
+        <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} dangerouslySingular />
+        <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} dangerouslySingular />
       </Stack>
       {__DEV__ && DevToolsGear ? <DevToolsGear /> : null}
       <ToastHost />

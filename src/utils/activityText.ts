@@ -25,11 +25,13 @@ export function describeActivity(a: Activity, translator: Translator): ActivityT
     case 'recap': {
       const p = a.params;
       const money = (n: number) => formatMoney(n, p.currency);
-      // Without income, "left" would only be minus the spending: show the spending alone (§5, as on Home).
+      // As on Home (§4, §5): without income only the spending; past the income, calm words, never a minus.
       const lines: (string | null)[] = [
-        p.income > 0
-          ? t('activity.recap.totals', { spent: money(p.spent), income: money(p.income), left: money(p.left) })
-          : t('activity.recap.spentOnly', { spent: money(p.spent) }),
+        p.income <= 0
+          ? t('activity.recap.spentOnly', { spent: money(p.spent) })
+          : p.left < 0
+            ? t('activity.recap.totalsOver', { spent: money(p.spent), income: money(p.income), over: money(-p.left) })
+            : t('activity.recap.totals', { spent: money(p.spent), income: money(p.income), left: money(p.left) }),
         tp('count.transactions', p.count),
       ];
       if (p.top.length > 0) {

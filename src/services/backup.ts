@@ -1,5 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
@@ -32,6 +32,29 @@ function currentPrefs(): Partial<PersistedPrefs> {
   return { defaultTheme, language, periodStartDay, devToolsHidden };
 }
 
+/** Deletes a file if it's there; a file that can't be removed is left for the system to clear. */
+function removeQuietly(file: File) {
+  try {
+    if (file.exists) file.delete();
+  } catch {
+    // The cache is the app's own, and the system clears it when space runs low.
+  }
+}
+
+/**
+ * Earlier export files in the cache. The newest one stays until the next export: the app the user shared
+ * it with may still be reading it after the share sheet closes.
+ */
+function removeOldExports() {
+  try {
+    for (const entry of new Directory(Paths.cache).list()) {
+      if (entry instanceof File && entry.name.startsWith(`${BRAND.name}-backup-`) && entry.name.endsWith('.json')) removeQuietly(entry);
+    }
+  } catch {
+    // Listing failed: nothing is lost, the files only wait for the system to clear them.
+  }
+}
+
 async function writeJson(file: File, value: unknown): Promise<void> {
   if (file.exists) file.delete();
   file.create();
@@ -45,6 +68,7 @@ async function writeJson(file: File, value: unknown): Promise<void> {
 export async function exportBackup(db: SQLiteDatabase, dialogTitle: string): Promise<void> {
   if (!(await Sharing.isAvailableAsync())) throw new DomainError('backup.noSharing');
   const backup = await createBackup(db, currentPrefs());
+  removeOldExports();
   const file = new File(Paths.cache, `${BRAND.name}-backup-${backup.exportedAt.slice(0, 10)}.json`);
   await writeJson(file, backup);
   await Sharing.shareAsync(file.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle });
@@ -54,11 +78,15 @@ export async function exportBackup(db: SQLiteDatabase, dialogTitle: string): Pro
 export async function pickBackup(db: SQLiteDatabase): Promise<{ backup: BackupFile; summary: BackupSummary } | null> {
   const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
   if (result.canceled || !result.assets[0]) return null;
+  // The picker copied the file into the cache; once read, that copy of the data isn't needed.
+  const picked = new File(result.assets[0].uri);
   let parsed: unknown;
   try {
-    parsed = JSON.parse(await new File(result.assets[0].uri).text());
+    parsed = JSON.parse(await picked.text());
   } catch {
     throw new DomainError('backup.notApp');
+  } finally {
+    removeQuietly(picked);
   }
   const backup = validateBackup(parsed, await readSchemaVersion(db));
   return { backup, summary: backupSummary(backup) };

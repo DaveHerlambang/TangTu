@@ -8,6 +8,8 @@ import { createCategory } from '@/db/categoriesRepository';
 import { createTransaction } from '@/db/transactionsRepository';
 import { makeTranslator } from '@/i18n/core';
 import { describeActivity } from '@/utils/activityText';
+import { recapDedupeKey, recapHandledThrough, yearToRecap } from '@/utils/bellSchedule';
+import { periodKey, shiftPeriodKey } from '@/utils/format';
 
 import { testDb } from './support/db';
 
@@ -157,5 +159,45 @@ describe('year recap', () => {
     assert.deepEqual(p.highest, { period: '2026-01', spent: 80_000 });
     assert.equal(p.lowest, null);
     assert.equal(await buildYearRecap(db, 2024, 25, 'IDR'), null);
+  });
+});
+
+describe('when recaps are due (0.4.1)', () => {
+  test('B6: past the income the recap says it calmly, never with a minus', async () => {
+    const { db } = await setup();
+    await addActivity(db, 'recap', {
+      period: '2026-10',
+      startDay: 1,
+      currency: 'IDR',
+      spent: 1_250_000,
+      income: 1_000_000,
+      left: -250_000,
+      count: 3,
+      top: [],
+    });
+    const text = await shown(db);
+    assert.match(text.en.body, /^Spent Rp 1\.250\.000 · income Rp 1\.000\.000 · Rp 250\.000 more than your income\n/);
+    assert.match(text.id.body, /^Keluar Rp 1\.250\.000 · masuk Rp 1\.000\.000 · Rp 250\.000 lebih dari pemasukan\n/);
+    assert.doesNotMatch(text.en.body + text.id.body, /-Rp/);
+  });
+
+  test('B5: a start-day change counts the period just before now (new rule) as handled', () => {
+    // 26 Nov: with start day 1 the period before is October; with 25 it is 2026-11 (25 Oct – 24 Nov).
+    assert.equal(recapHandledThrough(1, new Date(2026, 10, 26)), '2026-10');
+    assert.equal(recapHandledThrough(25, new Date(2026, 10, 26)), '2026-11');
+    // Switching 25 → 1 on 26 Nov: on 1 Dec the period before (2026-11 = 1–30 Nov) is newer than the marker,
+    // so November gets its recap — it used to be skipped.
+    assert.ok(shiftPeriodKey(periodKey(new Date(2026, 11, 1), 1), -1) > recapHandledThrough(1, new Date(2026, 10, 26)));
+    // The same key under two start days is two periods: two dedupe keys.
+    assert.notEqual(recapDedupeKey(25, '2026-11'), recapDedupeKey(1, '2026-11'));
+  });
+
+  test('B2: the year recap is due once, early in the year, whatever the bell history keeps', () => {
+    assert.equal(yearToRecap('2027-01', null), 2026);
+    assert.equal(yearToRecap('2027-02', null), 2026);
+    assert.equal(yearToRecap('2027-03', null), null); // later it is old news
+    // Written already: not again, even when the bell's 60-day trim has dropped the message (start day 25).
+    assert.equal(yearToRecap('2027-02', 2026), null);
+    assert.equal(yearToRecap('2028-01', 2026), 2027);
   });
 });

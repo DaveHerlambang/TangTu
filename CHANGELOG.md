@@ -5,6 +5,33 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.4.1 — 2026-11-23
+
+Fixes from the 0.4.0 audit that tests can prove (docs/AUDIT-0.4.0.md, release 1).
+
+**FIXED**
+- Changing the month's start day no longer skips a month recap: the next recap comes at the next boundary
+  under the new start day. The same fix keeps "tanggal tua" from being held back after such a change.
+- The year recap can no longer appear twice (with a start day from about 19 up, the bell's 60-day trim used
+  to let it through again).
+- The bell's month recap says "Rp X more than your income" when spending passes income, as Home does, instead
+  of "left -Rp X".
+- Restore refuses a backup file with a transaction whose amount isn't a whole positive number or whose date
+  isn't valid (such a file was accepted and its rows showed up with no date).
+- Error messages are always in the app's language; no technical text.
+
+**UNDER THE HOOD**
+- Temporary copies of the data are cleaned from the cache: the picked restore file once read, older export
+  files at the next export.
+- `src/utils/bellSchedule.ts` (`recapHandledThrough`, `recapDedupeKey`, `yearToRecap`); device marker
+  `lastYearRecap`; dedupe keys of recaps and "tanggal tua" carry the start day.
+- `.prettierrc` with the project's style.
+- The owner's other working notes (`docs/HANDOFF.md`, `docs/AUDIT-*.md`) are git-ignored like
+  `docs/IMPROVEMENT_PLAN.md`; `docs/SPEC.md` stays in the repo.
+- Tests: 167 (backup row checks incl. a year of mock data, recap scheduling, recap wording, error messages).
+
+---
+
 ## 0.4.0 — 2026-11-23
 
 Three new themes.

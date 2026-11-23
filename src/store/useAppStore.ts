@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { sanitizePrefs } from '@/utils/sanitizePrefs';
 import type { LanguagePref } from '@/i18n/core';
 import type { ThemeName } from '@/theme/themes';
+import { recapHandledThrough } from '@/utils/bellSchedule';
 import { DEFAULT_PERIOD_START_DAY } from '@/utils/format';
 
 /** Preferences that travel with a backup file (validated by `sanitizePrefs` on the way in). */
@@ -29,6 +30,8 @@ export interface DeviceMarkers {
   lastAnnouncedVersion: string | null;
   /** Last period (key) whose recap was written to the bell. */
   lastRecapPeriod: string | null;
+  /** Last year (of periods) whose recap was written to the bell (0.4.1; was the bell's history, which is trimmed). */
+  lastYearRecap: number | null;
   /** ISO time the user confirmed a backup was saved (shown in Settings; never a reminder). */
   lastBackupAt: string | null;
 }
@@ -70,6 +73,7 @@ interface AppState extends PersistedState {
   markNotificationsSeen: () => void;
   setLastAnnouncedVersion: (version: string) => void;
   setLastRecapPeriod: (period: string) => void;
+  setLastYearRecap: (year: number) => void;
   setLastBackupAt: (iso: string) => void;
   invalidateData: () => void;
 }
@@ -85,6 +89,7 @@ export const useAppStore = create<AppState>()(
       notificationsSeenAt: null,
       lastAnnouncedVersion: null,
       lastRecapPeriod: null,
+      lastYearRecap: null,
       lastBackupAt: null,
       dataVersion: 0,
       amountsVisible: false,
@@ -95,12 +100,20 @@ export const useAppStore = create<AppState>()(
       setAmountsVisible: (amountsVisible) => set({ amountsVisible }),
       setDefaultTheme: (defaultTheme) => set({ defaultTheme }),
       setLanguage: (language) => set({ language }),
-      setPeriodStartDay: (periodStartDay) => set({ periodStartDay }),
+      // Period keys mean other dates under another start day: the recap marker moves to the new rule (§8.7).
+      setPeriodStartDay: (periodStartDay) =>
+        set((s) => (s.periodStartDay === periodStartDay ? {} : { periodStartDay, lastRecapPeriod: recapHandledThrough(periodStartDay) })),
       setDevToolsHidden: (devToolsHidden) => set({ devToolsHidden }),
-      applyPrefs: (prefs) => set(prefs),
+      applyPrefs: (prefs) =>
+        set((s) =>
+          prefs.periodStartDay !== undefined && prefs.periodStartDay !== s.periodStartDay
+            ? { ...prefs, lastRecapPeriod: recapHandledThrough(prefs.periodStartDay) }
+            : prefs,
+        ),
       markNotificationsSeen: () => set({ notificationsSeenAt: new Date().toISOString() }),
       setLastAnnouncedVersion: (lastAnnouncedVersion) => set({ lastAnnouncedVersion }),
       setLastRecapPeriod: (lastRecapPeriod) => set({ lastRecapPeriod }),
+      setLastYearRecap: (lastYearRecap) => set({ lastYearRecap }),
       setLastBackupAt: (lastBackupAt) => set({ lastBackupAt }),
       invalidateData: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),
     }),
@@ -127,6 +140,7 @@ export const useAppStore = create<AppState>()(
           notificationsSeenAt: saved.notificationsSeenAt ?? null,
           lastAnnouncedVersion: saved.lastAnnouncedVersion ?? null,
           lastRecapPeriod: saved.lastRecapPeriod ?? null,
+          lastYearRecap: typeof saved.lastYearRecap === 'number' ? saved.lastYearRecap : null,
           lastBackupAt: saved.lastBackupAt ?? null,
         };
         return { ...current, ...markers, ...sanitizePrefs(saved) };
@@ -139,6 +153,7 @@ export const useAppStore = create<AppState>()(
         notificationsSeenAt,
         lastAnnouncedVersion,
         lastRecapPeriod,
+        lastYearRecap,
         lastBackupAt,
       }): PersistedState => ({
         defaultTheme,
@@ -148,6 +163,7 @@ export const useAppStore = create<AppState>()(
         notificationsSeenAt,
         lastAnnouncedVersion,
         lastRecapPeriod,
+        lastYearRecap,
         lastBackupAt,
       }),
     },

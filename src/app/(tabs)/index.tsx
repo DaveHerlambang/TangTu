@@ -107,7 +107,7 @@ export default function HomeScreen() {
       />
       {error ? (
         <Card>
-          <AppText tone="danger">{t('home.loadError', { message: error.message })}</AppText>
+          <AppText tone="danger">{t('home.loadError')}</AppText>
         </Card>
       ) : null}
       {search.active ? (

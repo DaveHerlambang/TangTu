@@ -115,6 +115,24 @@ describe('validation: backup files are untrusted', () => {
     ];
     for (const bad of cases) throwsCode(() => validateBackup(bad, SCHEMA_VERSION), 'backup.damaged');
   });
+  test('a transaction breaking the money or date rules makes the file damaged (0.4.1)', () => {
+    const tx = { id: 1, kind: 'EXPENSE', amount: 18_000, currency: 'IDR', category_id: 1, note: '', occurred_at: at(2026, 10, 1), created_at: at(2026, 10, 1), updated_at: at(2026, 10, 1) };
+    const withTx = (row: Record<string, unknown>) => ({ ...good(), tables: { ...good().tables, Transactions: [row] } });
+    assert.equal(validateBackup(withTx(tx), SCHEMA_VERSION).tables.Transactions?.length, 1);
+    // A 0.1.x row in another currency is fine: only what is surely broken is refused.
+    assert.equal(validateBackup(withTx({ ...tx, amount: 450, currency: 'USD' }), SCHEMA_VERSION).tables.Transactions?.length, 1);
+    for (const bad of [{ amount: 12.5 }, { amount: 0 }, { amount: -500 }, { amount: '18000' }, { amount: null }, { occurred_at: 'garbage' }, { occurred_at: '2026-11-01' }, { occurred_at: '2026-13-45T10:00:00.000Z' }, { occurred_at: null }]) {
+      throwsCode(() => validateBackup(withTx({ ...tx, ...bad }), SCHEMA_VERSION), 'backup.damaged');
+    }
+  });
+  test('every backup the app writes passes the new checks (a year of mock data too)', async () => {
+    const mock = await testDb();
+    await seedMockData(mock, 12, 25, new Date(2026, 10, 20));
+    for (const db of [await filledDb(), mock]) {
+      const written = JSON.parse(JSON.stringify(await createBackup(db, prefs)));
+      assert.ok(validateBackup(written, SCHEMA_VERSION).tables.Transactions!.length > 0);
+    }
+  });
   test('empty: restoring it would erase everything', () => {
     throwsCode(() => validateBackup({ ...good(), tables: {} }, SCHEMA_VERSION), 'backup.empty');
     throwsCode(() => validateBackup({ ...good(), tables: { Categories: [], Transactions: [] } }, SCHEMA_VERSION), 'backup.empty');
@@ -139,10 +157,16 @@ describe('restore is atomic: a bad row changes nothing', () => {
     restoreAndCheckUntouched((b) => {
       b.tables.Transactions![0].category_id = 999;
     }));
-  test('a negative amount (CHECK)', () =>
-    restoreAndCheckUntouched((b) => {
-      b.tables.Transactions![0].amount = -5;
-    }));
+  test('a negative amount: refused by validation (0.4.1), and the CHECK still guards the table', async () => {
+    const db = await filledDb();
+    const before = await createBackup(db, prefs);
+    const backup = roundTrip(before) as BackupFile;
+    backup.tables.Transactions![0].amount = -5;
+    throwsCode(() => validateBackup(backup, SCHEMA_VERSION), 'backup.damaged');
+    // Second line: even past validation, the database refuses it and nothing changes.
+    await rejectsCode(replaceAllData(db, backup), 'backup.damaged');
+    assert.deepEqual((await createBackup(db, prefs)).tables, before.tables);
+  });
   test('an expense in an income category', () =>
     restoreAndCheckUntouched((b) => {
       const income = b.tables.Categories!.find((c) => c.kind === 'INCOME')!;

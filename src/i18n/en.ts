@@ -26,6 +26,7 @@ export const en = {
   'common.tomorrow': 'Tomorrow',
   'common.holdOn': 'Hold on',
   'common.somethingWrong': 'Something went wrong',
+  'error.unexpected': 'Please try again. If it keeps happening, close TangTu and open it again.',
 
   // Navigation
   'tabs.home': 'Home',
@@ -53,7 +54,7 @@ export const en = {
   'home.empty.body': 'Every purchase you log shows up here, grouped by day.',
   'home.empty.action': 'Add the first one',
   'home.settings': 'Settings',
-  'home.loadError': "Couldn't load your data: {message}",
+  'home.loadError': "Couldn't load your data. Try again in a moment.",
 
   // Charts
   'charts.empty.title': 'Nothing to chart yet',
@@ -457,6 +458,7 @@ export const en = {
   'notifications.openSettings': 'Open Settings',
   'activity.recap.title': '{period} recap',
   'activity.recap.totals': 'Spent {spent} · income {income} · left {left}',
+  'activity.recap.totalsOver': 'Spent {spent} · income {income} · {over} more than your income',
   'activity.recap.top': 'Top: {list}',
   'activity.recap.spentOnly': 'Spent {spent}',
   'activity.recap.biggest': 'Biggest: {amount} ({what})',

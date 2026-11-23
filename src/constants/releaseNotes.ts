@@ -25,6 +25,40 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.4.1',
+    date: '2026-11-23',
+    en: {
+      summary: 'Fixes for the bell, for restoring a backup, and for error messages.',
+      sections: [
+        {
+          heading: 'fixed',
+          items: [
+            'Changing the day your month starts no longer skips a month recap.',
+            'The year recap shows up only once.',
+            'When you spend more than you earn, the month recap says so calmly instead of showing a minus.',
+            'Restoring refuses a damaged backup file instead of bringing in transactions with no date.',
+            'Error messages are always in your language.',
+          ],
+        },
+      ],
+    },
+    id: {
+      summary: 'Perbaikan untuk bel, pemulihan backup, dan pesan error.',
+      sections: [
+        {
+          heading: 'fixed',
+          items: [
+            'Mengganti tanggal mulai bulan tidak lagi membuat rekap bulanan terlewat.',
+            'Rekap tahunan hanya muncul sekali.',
+            'Saat pengeluaran melebihi pemasukan, rekap bulanan menyampaikannya dengan tenang, tanpa angka minus.',
+            'Pemulihan menolak file backup yang rusak, bukan memasukkan transaksi tanpa tanggal.',
+            'Pesan error selalu dalam bahasamu.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.4.0',
     date: '2026-11-23',
     en: {

@@ -43,3 +43,5 @@ yarn-error.*
 
 # owner working notes (not published)
 docs/IMPROVEMENT_PLAN.md
+docs/HANDOFF.md
+docs/AUDIT-*.md

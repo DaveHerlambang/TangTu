@@ -16,5 +16,6 @@ export function errorAlert(e: unknown, { t, lang }: Translator): { title: string
     }
     return { title: t('common.holdOn'), message: t(`error.${e.code}`, params) };
   }
-  return { title: t('common.somethingWrong'), message: e instanceof Error ? e.message : String(e) };
+  // Anything else is unexpected: its message is technical and in English, so the user gets plain words (§6.5).
+  return { title: t('common.somethingWrong'), message: t('error.unexpected') };
 }

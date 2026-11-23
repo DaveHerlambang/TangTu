@@ -22,6 +22,7 @@ export const id = {
   'common.tomorrow': 'Besok',
   'common.holdOn': 'Eits, sebentar',
   'common.somethingWrong': 'Ada yang error',
+  'error.unexpected': 'Coba lagi ya. Kalau masih terjadi, tutup TangTu lalu buka lagi.',
 
   'tabs.home': 'Beranda',
   'tabs.charts': 'Grafik',
@@ -46,7 +47,7 @@ export const id = {
   'home.empty.body': 'Semua yang kamu catat muncul di sini, dikelompokkan per hari.',
   'home.empty.action': 'Catat yang pertama',
   'home.settings': 'Pengaturan',
-  'home.loadError': 'Data kamu gagal dimuat: {message}',
+  'home.loadError': 'Data kamu gagal dimuat. Coba lagi sebentar lagi.',
 
   'charts.empty.title': 'Grafiknya masih kosong',
   'charts.empty.body': 'Catat beberapa pengeluaran, nanti di sini kelihatan uangmu larinya ke mana.',
@@ -438,6 +439,7 @@ export const id = {
   'notifications.openSettings': 'Buka Pengaturan',
   'activity.recap.title': 'Rekap {period}',
   'activity.recap.totals': 'Keluar {spent} · masuk {income} · sisa {left}',
+  'activity.recap.totalsOver': 'Keluar {spent} · masuk {income} · {over} lebih dari pemasukan',
   'activity.recap.top': 'Teratas: {list}',
   'activity.recap.spentOnly': 'Keluar {spent}',
   'activity.recap.biggest': 'Terbesar: {amount} ({what})',

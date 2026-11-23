@@ -527,7 +527,14 @@ a template brings its own tint. Editing an existing category uses the same edito
      period has income and something left — never bad news.
    - **"Your 2026 in TangTu"** (since 0.3.0): once, in the first two periods of the new year (keys -01, -02):
      the year's periods (YYYY-01…-12, so the start day applies) — spent, income, count, top 3 categories,
-     biggest month, quietest month (when two months had spending), biggest purchase.
+     biggest month, quietest month (when two months had spending), biggest purchase. "Once" is a device
+     marker (`lastYearRecap`), not the bell's history, which is trimmed after 60 days.
+   - **Changing the start day** (in Settings or by a restore) never writes a recap at once: the period just
+     before now under the new start day counts as handled, and the next boundary under the new rule brings
+     the next recap. Dedupe keys of recaps and "tanggal tua" carry the start day (`recap:<day>:<key>`), since
+     the same key means other dates under another start day.
+   - Past the income, the recap's first line reads "Spent X · income Y · Z more than your income" (as on
+     Home), never a minus.
    - **"Backup restored"**, **"Restore undone"**, **"What's new in x.y.z"**.
    - Not in the bell, on purpose (§5): budget alerts, streaks, "you haven't logged today", backup reminders.
 8. **Pull to refresh** on lists.
@@ -645,8 +652,13 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
 - **Backup = JSON** (`format: 1`): all tables + preferences, through the share sheet (Drive, Files…).
   Android can't tell "saved" from "cancelled", so afterwards ask **"Did you save the backup?"**; only
   "Yes, saved" updates **"Last backup: 12 days ago"** in Settings (passive text, no reminders).
-- **Restore** treats files as untrusted: reject non-app files, newer schemas, damaged tables and empty
-  backups; apply only known, valid preferences; map columns by name.
+- **Restore** treats files as untrusted: reject non-app files, newer schemas, damaged tables, empty
+  backups and (since 0.4.1) any transaction whose `amount` isn't a positive whole number or whose
+  `occurred_at` isn't an ISO date — a currency other than IDR from 0.1.x is still accepted; apply only
+  known, valid preferences; map columns by name.
+- The export file and the picked file are temporary copies of all the data in the app's cache: the picked
+  copy is deleted once read; older export files are deleted at the next export (the newest stays, since the
+  app it was shared with may still be reading it).
 - **Safety copy + Undo restore** for 7 days (`pre-restore-backup.json` in the document directory, verified
   before anything is replaced; refuse the restore if it can't be written).
 - Device markers (last backup, bell seen, last recap) never travel in backups.
@@ -658,6 +670,11 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
 - Routes only in `src/app/`; `@/` → `src/`; all SQL in `src/db/*Repository.ts`; screens read through
   `useDbQuery` (re-runs on focus and on a `dataVersion` bump after writes).
 - Strict TypeScript; never import `Pressable` (use `Touchable`); keyboard via `react-native-keyboard-controller`.
+- **Formatting:** `.prettierrc` (single quotes, width 150, trailing commas, `endOfLine: auto` because git turns
+  files into CRLF on Windows) — `npx prettier --check <files>`. Format what you touch only when the file was
+  already clean; a few files aren't, and mass-formatting them would bury real changes.
+- **Errors the user sees** are always words from the dictionaries: a `DomainError` explains itself; anything
+  else shows a plain "try again" message, never its technical text.
 - **Every user-visible string goes through `t()`** (§6.5); a test fails on string literals rendered in components.
 - **Dev tools only behind `__DEV__`** (guarded `require`): gear with "Nuke database" and
   **"Mock data · 6 months / 1 year"** (deterministic, replaces everything; realistic spending per category,
@@ -966,4 +983,16 @@ Still open:
 - §6.1's "never pure black" rule now reads "Dark is navy; Pitch Black is the one true-black theme" (owner).
 - New theme keys are additions: old backups still restore; a backup with a new theme restored on an older
   app falls back to the default theme (`sanitizePrefs`).
+
+**2026-11-23 — release 0.4.1 (PATCH): fixes from the 0.4.0 audit (docs/AUDIT-0.4.0.md, release 1 of its plan)**
+- S2: `validateBackup` refuses transactions with a non-whole/non-positive `amount` or a non-ISO `occurred_at`
+  (proved accepted before, by a script). The database CHECK stays as the second line.
+- S3: the picked restore file is deleted once read; older export files at the next export.
+- B2: the year recap's "once" is the device marker `lastYearRecap` (`yearToRecap`, pure and tested).
+- B5: a start-day change (Settings or restore) moves `lastRecapPeriod` to the period just before now under the
+  new rule (`recapHandledThrough`); recap dedupe keys carry the start day (`recapDedupeKey`). Found while fixing
+  it: "tanggal tua" had the same key collision — its key carries the start day too.
+- B6: past the income the bell's recap says "Z more than your income", like Home.
+- K2: `errorAlert`'s fallback and `home.loadError` no longer show technical messages.
+- K3: `.prettierrc` added (§12); `endOfLine: auto` because of CRLF working copies.
 

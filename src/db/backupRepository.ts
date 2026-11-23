@@ -65,6 +65,10 @@ export async function createBackup(db: SQLiteDatabase, prefs: Partial<PersistedP
 
 const isCell = (v: unknown) => v === null || typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v));
 const isRow = (r: unknown): r is BackupRow => !!r && typeof r === 'object' && !Array.isArray(r) && Object.values(r).every(isCell);
+/** Money is a positive whole number in the smallest unit (§3). */
+const isAmount = (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v > 0;
+/** Dates are ISO UTC strings, as `toISOString()` writes them (§3). */
+const isIsoDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) && !Number.isNaN(Date.parse(v));
 
 /**
  * Backup files are untrusted input: refuse anything that isn't a sound, non-empty TangTu backup this
@@ -85,6 +89,12 @@ export function validateBackup(parsed: unknown, currentSchemaVersion: number): B
     const rows: unknown = b.tables[table];
     if (rows === undefined) continue;
     if (!Array.isArray(rows) || !rows.every(isRow)) throw new DomainError('backup.damaged');
+  }
+  // The app always writes whole amounts and ISO dates; a hand-edited file might not. Such a row would break
+  // the totals or land outside every period, so the file is refused (0.4.1). Only what is surely broken:
+  // a currency other than rupiah from 0.1.x is fine.
+  for (const row of b.tables.Transactions ?? []) {
+    if (!isAmount(row.amount) || !isIsoDate(row.occurred_at)) throw new DomainError('backup.damaged');
   }
   // Restoring replaces everything, so an empty file would silently wipe the app.
   if (BACKUP_TABLES.every((table) => (b.tables![table]?.length ?? 0) === 0)) throw new DomainError('backup.empty');

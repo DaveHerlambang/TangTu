@@ -5,6 +5,7 @@ import { findRelease } from '@/constants/releaseNotes';
 import { addActivity, buildRecap, buildTanggalTua, buildYearRecap, hasActivity, hasAnyTransactions } from '@/db/activityRepository';
 import { useAppStore } from '@/store/useAppStore';
 import { periodKey, shiftPeriodKey } from '@/utils/format';
+import { recapDedupeKey, yearToRecap } from '@/utils/bellSchedule';
 import { DEFAULT_CURRENCY } from '@/utils/money';
 
 /**
@@ -27,7 +28,7 @@ export async function logPeriodRecapIfDue(db: SQLiteDatabase, now: Date = new Da
   store.setLastRecapPeriod(previous);
   const recap = await buildRecap(db, previous, store.periodStartDay, DEFAULT_CURRENCY);
   if (!recap) return false;
-  return addActivity(db, 'recap', recap, { dedupeKey: `recap:${previous}`, now });
+  return addActivity(db, 'recap', recap, { dedupeKey: recapDedupeKey(store.periodStartDay, previous), now });
 }
 
 /**
@@ -50,24 +51,25 @@ export async function announceNewVersionIfNeeded(db: SQLiteDatabase, version: st
 export async function logTanggalTuaIfDue(db: SQLiteDatabase, now: Date = new Date()): Promise<boolean> {
   const { periodStartDay } = useAppStore.getState();
   const period = periodKey(now, periodStartDay);
-  const dedupeKey = `tanggaltua:${period}`;
+  // With the start day in it: the same key means other dates under another start day (as for recaps).
+  const dedupeKey = `tanggaltua:${periodStartDay}:${period}`;
   if (await hasActivity(db, dedupeKey)) return false;
   const params = await buildTanggalTua(db, period, periodStartDay, DEFAULT_CURRENCY, now);
   return params ? addActivity(db, 'tanggal_tua', params, { dedupeKey, now }) : false;
 }
 
-/** The year recap is written in the first periods of the next year (keys -01 and -02) — later it's old news. */
-export const YEAR_RECAP_LAST_MONTH = 2;
-
-/** The recap of last year's periods, once, early in the new year; nothing for a year with no data. */
+/**
+ * The recap of last year's periods, once, early in the new year (`yearToRecap`); nothing for a year with no
+ * data. "Once" is a device marker, not the bell's history, which is trimmed after 60 days (0.4.1, B2).
+ */
 export async function logYearRecapIfDue(db: SQLiteDatabase, now: Date = new Date()): Promise<boolean> {
-  const { periodStartDay } = useAppStore.getState();
-  const [year, month] = periodKey(now, periodStartDay).split('-').map(Number);
-  if (month > YEAR_RECAP_LAST_MONTH) return false;
-  const dedupeKey = `year:${year - 1}`;
-  if (await hasActivity(db, dedupeKey)) return false;
-  const params = await buildYearRecap(db, year - 1, periodStartDay, DEFAULT_CURRENCY);
-  return params ? addActivity(db, 'year_recap', params, { dedupeKey, now }) : false;
+  const store = useAppStore.getState();
+  const year = yearToRecap(periodKey(now, store.periodStartDay), store.lastYearRecap);
+  if (year === null) return false;
+  const params = await buildYearRecap(db, year, store.periodStartDay, DEFAULT_CURRENCY);
+  if (!params) return false;
+  store.setLastYearRecap(year);
+  return addActivity(db, 'year_recap', params, { dedupeKey: `year:${year}`, now });
 }
 
 /** Runs every "something is due" check. Resolves whether anything was added. */

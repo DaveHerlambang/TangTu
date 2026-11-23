@@ -57,7 +57,7 @@ export default function DayScreen() {
     <View style={{ gap: spacing.lg, marginBottom: spacing.lg }}>
       {error ? (
         <Card>
-          <AppText tone="danger">{t('home.loadError', { message: error.message })}</AppText>
+          <AppText tone="danger">{t('home.loadError')}</AppText>
         </Card>
       ) : null}
       <Card style={{ gap: 2 }}>

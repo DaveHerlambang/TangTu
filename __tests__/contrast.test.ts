@@ -91,3 +91,14 @@ for (const name of THEME_ORDER) {
       ));
   });
 }
+
+// Spent (money colour) and Income (success) sit side by side on Home since 0.3.0: they must never look alike.
+test('every theme shows spending and income in clearly different colours', () => {
+  const same = THEME_ORDER.filter((name) => {
+    const { accent, success } = themes[name].colors;
+    const [a, b] = [accent, success].map((hex) => parseInt(hex.slice(1), 16));
+    const diff = Math.abs((a >> 16) - (b >> 16)) + Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) + Math.abs((a & 255) - (b & 255));
+    return diff < 60;
+  });
+  assert.deepEqual(same, []);
+});

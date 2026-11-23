@@ -26,7 +26,14 @@ import { THEME_ORDER, radius, spacing, themes, type ThemeName } from '@/theme/th
 import { errorAlert } from '@/utils/errorMessage';
 import { formatBackupAge } from '@/utils/format';
 
-const THEME_LABEL: Record<ThemeName, MessageKey> = { sakura: 'theme.sakura', light: 'theme.light', dark: 'theme.dark' };
+const THEME_LABEL: Record<ThemeName, MessageKey> = {
+  sakura: 'theme.sakura',
+  light: 'theme.light',
+  matcha: 'theme.matcha',
+  latte: 'theme.latte',
+  dark: 'theme.dark',
+  black: 'theme.black',
+};
 const LANGUAGE_LABEL: Record<LanguagePref, MessageKey> = { system: 'language.system', en: 'language.en', id: 'language.id' };
 
 /**

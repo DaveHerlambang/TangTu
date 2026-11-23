@@ -289,7 +289,9 @@ Top to bottom, in the order you think it (layout since 0.2.0, owner-approved):
 Soft-UI, card-based, generous radius, soft diffused **tinted** shadows, friendly rounded **Nunito**. Cute
 but not childish; calm, not corporate. **UI in English and Bahasa Indonesia (§6.5). No emoji in the UI.**
 
-### 6.1 Themes (three, chosen in Settings only)
+### 6.1 Themes (six, chosen in Settings only)
+TracKar's three:
+
 | Token | Cherry Blossom `sakura` (default) | Light `light` | Dark `dark` |
 |---|---|---|---|
 | `background` | `#FCF6F9` | `#F6F7F9` | `#1A1B26` |
@@ -297,7 +299,7 @@ but not childish; calm, not corporate. **UI in English and Bahasa Indonesia (§6
 | `text` | `#4A3540` | `#1D2027` | `#C0CAF5` |
 | `textMuted` | `#7A6570` | `#666B78` | `#9AA0C4` |
 | `border` (decorative only) | `#F6E3EB` | `#E9EBF0` | `#2F3450` |
-| `accent` (money colour) | `#9C5562` | `#167A4F` | `#7DCFFF` |
+| `accent` (money colour) | `#9C5562` | `#2F62D6` (TracKar: `#167A4F`, changed 0.4.0) | `#7DCFFF` |
 | `accentAlt` | `#E88FAE` | `#4C7DF0` | `#BB9AF7` |
 | `primary` (fills: buttons, FAB, selected chips, rings) | `#E88FAE` | `#2F62D6` | `#BB9AF7` |
 | `onPrimary` | `#3E1A2C` | `#FFFFFF` | `#1A1B26` |
@@ -310,10 +312,35 @@ but not childish; calm, not corporate. **UI in English and Bahasa Indonesia (§6
 | `shadow` | `rgba(232,143,174,0.28)` | `rgba(17,24,39,0.08)` | `rgba(0,0,0,0.35)` |
 | card `shadow` | `0px 6px 18px rgba(232,143,174,0.18)` | `0px 4px 14px rgba(17,24,39,0.06)` | `0px 6px 18px rgba(0,0,0,0.3)` |
 
-- These are TracKar's values — copying `themes.ts` (§0 step 4) brings them in; this table is the check.
-- **Contrast (WCAG AA), checked by a test:** meaningful text/icons ≥ 4.5:1 on `surface`, `background` and
-  `track`; `onPrimary` on `primary`; outlines of pressable controls ≥ 3:1. `primary` is a fill; brand-coloured
-  text uses `primaryText`. Dark is navy, never pure black.
+TangTu's own (0.4.0, owner-approved; light themes use the light tints, Pitch Black the dark tints):
+
+| Token | Matcha `matcha` | Iced Latte / Kopi Susu `latte` | Pitch Black / Hitam Pekat `black` |
+|---|---|---|---|
+| `background` | `#E9F0DF` | `#F8F3EC` | `#000000` |
+| `surface` | `#FAFCF6` | `#FFFDF9` | `#121212` |
+| `text` | `#26321A` | `#3B2F27` | `#E6E6E6` |
+| `textMuted` | `#53604A` | `#6A5D54` | `#A3A3A3` |
+| `border` (decorative only) | `#D6E2C8` | `#EEE4D8` | `#262626` |
+| `accent` (money colour) | `#3F5320` | `#8A5A3B` | `#E8C27A` |
+| `accentAlt` | `#9DBE5E` | `#C89B72` | `#C9A35E` |
+| `primary` | `#9DBE5E` | `#C89B72` | `#E8C27A` |
+| `onPrimary` | `#22300D` | `#2E1E12` | `#1A1405` |
+| `primaryText` | `#4A651C` | `#8A5232` | `#E8C27A` |
+| `outline` | `#6A7C56` | `#94806F` | `#6B6B6B` |
+| `toastAction` | `#C9E39A` | `#E8C9A6` | `#5C4300` |
+| `success` (income) | `#1C6B58` | `#336B3F` | `#8FD6A8` |
+| `danger` (destructive only) | `#A8372C` | `#A33F33` | `#F28B82` |
+| `track` | `#DEE8D0` | `#F0E7DC` | `#1F1F1F` |
+| `shadow` | `rgba(74,101,28,0.16)` | `rgba(138,90,59,0.16)` | `rgba(0,0,0,0.6)` |
+| card `shadow` | `0px 4px 14px rgba(38,50,26,0.08)` | `0px 4px 14px rgba(59,47,39,0.08)` | `0px 6px 18px rgba(0,0,0,0.5)` |
+
+- The first three are TracKar's values — copying `themes.ts` (§0 step 4) brought them in; the tables are the check.
+- Order in Settings (owner, 0.4.0): Light, Dark, Cherry Blossom, Pitch Black, Matcha, Iced Latte. The default stays Cherry Blossom.
+- **Contrast (WCAG AA), checked by a test for every theme:** meaningful text/icons ≥ 4.5:1 on `surface`,
+  `background` and `track`; `onPrimary` on `primary`; outlines of pressable controls ≥ 3:1; the 8 tints. The
+  new themes pass with **no** accepted exceptions (§14.8's list is for TracKar's values only). `primary` is a
+  fill; brand-coloured text uses `primaryText`. Dark is navy; **Pitch Black is the one true-black theme**
+  (owner, 2026-11-22 — replaces TracKar's "never pure black" rule), with soft grey text rather than white.
 
 ### 6.2 Typography (`AppText` is the only text component)
 | Variant | Family | Size / line |
@@ -700,7 +727,7 @@ Still open:
 ## 15. Acceptance checklist for v1.0.0
 
 - [ ] A purchase is logged in ≤ 5 seconds from Home.
-- [ ] Every category is recognisable by its badge; all 8 tints pass contrast in all three themes.
+- [ ] Every category is recognisable by its badge; all 8 tints pass contrast in every theme.
 - [ ] Spent / income / left agree on Home, Charts and category screens for any period and start day.
 - [ ] Archived categories leave the pickers but stay correct in history and charts.
 - [ ] Large font (1.3×) clips nothing — checked in **both languages**; the eye hides and re-hides as specified.
@@ -924,4 +951,19 @@ Still open:
   thresholds 1.25× / 0.75×; the year recap is written in the first two periods of the new year only, for the
   previous year's periods. Indonesian avoids judging words ("terbesar/terkecil", not "boros/hemat").
   Recurring-transaction messages wait for recurring transactions (phase 7).
+
+**2026-11-23 — release 0.4.0 (MINOR)**
+- Owner (#7): three new themes — **Matcha** (calm green), **Iced Latte / Kopi Susu** (warm cream and coffee),
+  **Pitch Black / Hitam Pekat** (true black, soft grey text, calm gold; replaces the navy "Midnight" draft,
+  too close to Dark). Values in §6.1. Kopi Susu's `success` and `danger` were darkened from the draft to pass
+  on its `track`. Existing tints reused (light themes: light tints; Pitch Black: dark tints) — all pass.
+- Owner on the phone: the first Matcha (`#F3F7F2` canvas) was hard to tell from Light, and its money colour and
+  income were both green. Redone: matcha-latte canvas `#E9F0DF`, matcha-powder `#9DBE5E` fills, spending in deep
+  "matcha ink" `#3F5320`, income teal-green `#1C6B58`.
+- Owner: **Light's money colour is now its blue** `#2F62D6` (was TracKar's green `#167A4F`, identical to its
+  `success`, so Spent and Income — side by side since 0.3.0 — looked the same; its swatch showed blue while
+  the screen was mostly green). Income stays green. Every theme now has a money colour distinct from income.
+- §6.1's "never pure black" rule now reads "Dark is navy; Pitch Black is the one true-black theme" (owner).
+- New theme keys are additions: old backups still restore; a backup with a new theme restored on an older
+  app falls back to the default theme (`sanitizePrefs`).
 

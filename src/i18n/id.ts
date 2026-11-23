@@ -71,6 +71,9 @@ export const id = {
   'theme.sakura': 'Cherry Blossom',
   'theme.light': 'Terang',
   'theme.dark': 'Gelap',
+  'theme.matcha': 'Matcha',
+  'theme.latte': 'Kopi Susu',
+  'theme.black': 'Hitam Pekat',
 
   'language.system': 'Default sistem',
   'language.system.detail': 'Sekarang {language}',

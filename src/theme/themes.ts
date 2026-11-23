@@ -1,4 +1,4 @@
-export type ThemeName = 'sakura' | 'light' | 'dark';
+export type ThemeName = 'sakura' | 'light' | 'matcha' | 'latte' | 'dark' | 'black';
 
 /** Category badge tints (§7.1). Order matters: a new category takes the next one, so neighbours differ. */
 export const TINT_ORDER = ['rose', 'peach', 'amber', 'mint', 'teal', 'sky', 'lavender', 'slate'] as const;
@@ -10,7 +10,7 @@ export interface Tint {
   ink: string;
 }
 
-/** Shared by Cherry Blossom and Light. */
+/** Shared by the light themes: Cherry Blossom, Light, Matcha, Iced Latte. */
 const LIGHT_TINTS: Record<TintKey, Tint> = {
   rose: { fill: '#FDE2EC', ink: '#B23A68' },
   peach: { fill: '#FFE5D4', ink: '#A94F17' },
@@ -22,6 +22,7 @@ const LIGHT_TINTS: Record<TintKey, Tint> = {
   slate: { fill: '#E7E9EF', ink: '#545C6C' },
 };
 
+/** Shared by the dark themes: Dark, Pitch Black. */
 const DARK_TINTS: Record<TintKey, Tint> = {
   rose: { fill: '#4A2B3B', ink: '#F7A1C0' },
   peach: { fill: '#4A3326', ink: '#FFB38A' },
@@ -93,7 +94,8 @@ export const themes: Record<ThemeName, Theme> = {
     shadow: '0px 6px 18px rgba(232, 143, 174, 0.18)',
     tints: LIGHT_TINTS,
   },
-  // Clean, near-white UI: white cards on a cool off-white canvas, neutral ink, one calm blue.
+  // Clean, near-white UI: white cards on a cool off-white canvas, neutral ink, one calm blue — also for
+  // spending since 0.4.0 (TracKar's green equalled `success`, so spent and income looked the same).
   light: {
     name: 'light',
     isDark: false,
@@ -103,7 +105,7 @@ export const themes: Record<ThemeName, Theme> = {
       text: '#1D2027',
       textMuted: '#666B78',
       border: '#E9EBF0',
-      accent: '#167A4F',
+      accent: '#2F62D6',
       accentAlt: '#4C7DF0',
       primary: '#2F62D6',
       onPrimary: '#FFFFFF',
@@ -116,6 +118,57 @@ export const themes: Record<ThemeName, Theme> = {
       shadow: 'rgba(17, 24, 39, 0.08)',
     },
     shadow: '0px 4px 14px rgba(17, 24, 39, 0.06)',
+    tints: LIGHT_TINTS,
+  },
+  // Matcha (0.4.0): matcha-latte canvas, matcha-powder buttons, deep "matcha ink" for spending and a
+  // teal-green for income, so the two never look alike side by side (and Matcha never looks like Light).
+  matcha: {
+    name: 'matcha',
+    isDark: false,
+    colors: {
+      background: '#E9F0DF',
+      surface: '#FAFCF6',
+      text: '#26321A',
+      textMuted: '#53604A',
+      border: '#D6E2C8',
+      accent: '#3F5320',
+      accentAlt: '#9DBE5E',
+      primary: '#9DBE5E',
+      onPrimary: '#22300D',
+      primaryText: '#4A651C',
+      outline: '#6A7C56',
+      toastAction: '#C9E39A',
+      success: '#1C6B58',
+      danger: '#A8372C',
+      track: '#DEE8D0',
+      shadow: 'rgba(74, 101, 28, 0.16)',
+    },
+    shadow: '0px 4px 14px rgba(38, 50, 26, 0.08)',
+    tints: LIGHT_TINTS,
+  },
+  // Iced Latte / Kopi Susu (0.4.0): warm cream and coffee brown, caramel buttons.
+  latte: {
+    name: 'latte',
+    isDark: false,
+    colors: {
+      background: '#F8F3EC',
+      surface: '#FFFDF9',
+      text: '#3B2F27',
+      textMuted: '#6A5D54',
+      border: '#EEE4D8',
+      accent: '#8A5A3B',
+      accentAlt: '#C89B72',
+      primary: '#C89B72',
+      onPrimary: '#2E1E12',
+      primaryText: '#8A5232',
+      outline: '#94806F',
+      toastAction: '#E8C9A6',
+      success: '#336B3F',
+      danger: '#A33F33',
+      track: '#F0E7DC',
+      shadow: 'rgba(138, 90, 59, 0.16)',
+    },
+    shadow: '0px 4px 14px rgba(59, 47, 39, 0.08)',
     tints: LIGHT_TINTS,
   },
   dark: {
@@ -142,9 +195,36 @@ export const themes: Record<ThemeName, Theme> = {
     shadow: '0px 6px 18px rgba(0, 0, 0, 0.3)',
     tints: DARK_TINTS,
   },
+  // Pitch Black / Hitam Pekat (0.4.0): true black for OLED screens, soft grey text (not pure white, so it
+  // doesn't glare), calm gold for amounts and buttons.
+  black: {
+    name: 'black',
+    isDark: true,
+    colors: {
+      background: '#000000',
+      surface: '#121212',
+      text: '#E6E6E6',
+      textMuted: '#A3A3A3',
+      border: '#262626',
+      accent: '#E8C27A',
+      accentAlt: '#C9A35E',
+      primary: '#E8C27A',
+      onPrimary: '#1A1405',
+      primaryText: '#E8C27A',
+      outline: '#6B6B6B',
+      toastAction: '#5C4300',
+      success: '#8FD6A8',
+      danger: '#F28B82',
+      track: '#1F1F1F',
+      shadow: 'rgba(0, 0, 0, 0.6)',
+    },
+    shadow: '0px 6px 18px rgba(0, 0, 0, 0.5)',
+    tints: DARK_TINTS,
+  },
 };
 
-export const THEME_ORDER: readonly ThemeName[] = ['sakura', 'light', 'dark'];
+/** The order in Settings (owner, 0.4.0): Light, Dark, Cherry Blossom, Pitch Black, then Matcha and Iced Latte. */
+export const THEME_ORDER: readonly ThemeName[] = ['light', 'dark', 'sakura', 'black', 'matcha', 'latte'];
 
 /** Nunito: rounded, friendly sans. Android ignores fontWeight for custom fonts, so each weight is its own family. */
 export const fonts = {

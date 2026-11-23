@@ -25,6 +25,46 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.4.0',
+    date: '2026-11-23',
+    en: {
+      summary: 'Three new looks for TangTu: Matcha, Iced Latte and Pitch Black.',
+      sections: [
+        {
+          heading: 'new',
+          items: [
+            'Matcha: a calm green theme.',
+            'Iced Latte: warm cream and coffee.',
+            'Pitch Black: true black, easy on the eyes at night and on the battery of most phones.',
+            'Pick one in Settings → Theme.',
+          ],
+        },
+        {
+          heading: 'improved',
+          items: ['Light theme: what you spend is now blue, so it stands apart from your income in green.'],
+        },
+      ],
+    },
+    id: {
+      summary: 'Tiga tampilan baru untuk TangTu: Matcha, Kopi Susu, dan Hitam Pekat.',
+      sections: [
+        {
+          heading: 'new',
+          items: [
+            'Matcha: tema hijau yang menenangkan.',
+            'Kopi Susu: krem hangat dan cokelat kopi.',
+            'Hitam Pekat: hitam pekat, nyaman di mata saat malam dan hemat baterai di kebanyakan HP.',
+            'Pilih di Pengaturan → Tema.',
+          ],
+        },
+        {
+          heading: 'improved',
+          items: ['Tema Terang: pengeluaran sekarang berwarna biru, jadi beda jelas dengan pemasukan yang hijau.'],
+        },
+      ],
+    },
+  },
+  {
     version: '0.3.0',
     date: '2026-11-22',
     en: {

@@ -5,6 +5,26 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.4.0 — 2026-11-23
+
+Three new themes.
+
+**NEW**
+- Themes **Matcha** (matcha-latte canvas, matcha-powder buttons; spending in deep matcha ink, income teal-green), **Iced Latte** / Kopi Susu (warm cream and coffee) and **Pitch Black** /
+  Hitam Pekat (true black for OLED screens, soft grey text, calm gold). Settings → Theme now lists six: Light,
+  Dark, Cherry Blossom, Pitch Black, Matcha, Iced Latte.
+
+**CHANGED**
+- Light: spending is shown in the theme's blue (it was the same green as income, so the two looked alike on
+  Home). Income stays green, and the Light swatch in Settings now matches the screen.
+
+**UNDER THE HOOD**
+- `ThemeName` gains `matcha`, `latte`, `black`; the contrast test covers them with no accepted exceptions
+  (15 more checks). The light tints serve Matcha and Iced Latte, the dark tints Pitch Black.
+- docs/SPEC.md §6.1: both theme tables; "Dark is navy; Pitch Black is the one true-black theme".
+
+---
+
 ## 0.3.0 — 2026-11-22
 
 Home shows income next to spending, search lives on Home, and the bell has more to say.

@@ -82,6 +82,9 @@ export const en = {
   'theme.sakura': 'Cherry Blossom',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
+  'theme.matcha': 'Matcha',
+  'theme.latte': 'Iced Latte',
+  'theme.black': 'Pitch Black',
 
   'language.system': 'System default',
   'language.system.detail': 'Currently {language}',

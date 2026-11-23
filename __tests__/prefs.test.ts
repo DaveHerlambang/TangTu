@@ -32,3 +32,7 @@ test('survives garbage', () => {
   assert.deepEqual(sanitizePrefs('dark'), {});
   assert.deepEqual(sanitizePrefs([1, 2]), {});
 });
+
+test('the 0.4.0 themes are valid preferences (a backup with them restores its theme)', () => {
+  for (const theme of ['matcha', 'latte', 'black'] as const) assert.deepEqual(sanitizePrefs({ defaultTheme: theme }), { defaultTheme: theme });
+});

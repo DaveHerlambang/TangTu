@@ -566,7 +566,8 @@ export function TransactionForm({ editId, initialKind }: { editId: Id | null; in
                 </Touchable>
               </View>
             </Animated.View>
-            {categories.length === 0 ? (
+            {/* Only once the read has landed: while it is still loading, "no categories" would be a lie (0.5.0). */}
+            {active !== undefined && categories.length === 0 ? (
               <AppText variant="caption" tone="muted">
                 {t('tx.noCategories')}
               </AppText>

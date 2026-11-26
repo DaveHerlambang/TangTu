@@ -146,7 +146,10 @@ people they add can sign in (owner, 2026-11-26). The README carries these steps 
    (preview branches are a paid feature and not needed). A push to the project's production branch applies the
    migrations not applied yet. One project only (§14.15): it follows `release/0.5.0` while 0.5.0 is tested and
    `master` from then on. No `config.toml` in the repo, so the integration never changes the project's auth or
-   API settings.
+   API settings. **A migration run by hand** (SQL Editor, when the integration doesn't trigger) must also be
+   recorded, or the next push or integration run tries to create the tables again and fails:
+   `insert into supabase_migrations.schema_migrations (version, name) values ('<timestamp in the file name>', '<name>')`
+   (create the schema and table first if they don't exist yet).
 3. **Close the door:** Authentication → turn **off** "Allow new users to sign up". Then Authentication →
    Users → **Add user** for each person who may sign in (email + password, "Auto Confirm User" ticked).
 4. **Connect the app:** copy `.env.example` to `.env` and fill `EXPO_PUBLIC_SUPABASE_URL` and
@@ -1201,3 +1204,18 @@ Still open:
   stay because they hold no data or keys and every self-hosted project is built from them).
 - Not verified here: nothing ran against a real Supabase project (none was set up yet) or on a phone; the live
   check skipped. The owner's first run of `npm run test:live` and a sign-in on the device are the first proof.
+
+**2026-11-26 — the owner's project got `init` by hand**
+- The GitHub integration did not trigger after pushing `release/0.5.0` (no check on the commit, no tables after
+  10 minutes), so the owner ran `20261126000000_init.sql` in the SQL Editor and inserted its row
+  (`20261126000000`, `init`) into `supabase_migrations.schema_migrations`; checked on screen. Checked from the
+  development machine afterwards: the three tables exist and a guest (publishable key, nobody signed in) is
+  refused on all three, on an insert and on `replace_all_data` (401, permission denied).
+- `npm run test:live` on the owner's two test accounts passed, 5 of 5 (the same day): categories (create, names,
+  reorder, archive, delete + Undo), transactions (embedded category, Undo by upsert, a used category kept),
+  the bell's dedupe per account, row level security between the two accounts through the API, and backup
+  restore into the other account with new ids plus a year of mock data (more than 1000 rows, so paging works).
+  The two accounts were allowed by name (`TANGTU_LIVE_ALLOW_EMAILS`, the guard otherwise wants "test" in the
+  email). Not seen yet: the policy counts (3, 4, 4); and nothing was tried on a phone.
+- Left behind: the two test accounts hold the mock data (a year of it); signing in to them shows it. The owner's own
+  account is untouched.

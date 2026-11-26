@@ -35,6 +35,10 @@ purpose — MAJOR by the rules, MINOR under `0.x` (§10.2). Old backups still re
 - Android auto-backup is off (`allowBackup: false`): the session must not land in a Google Drive backup (S1).
 - Dev tools: mock data is sent as one restore; "Nuke" empties the signed-in account (test accounts only).
 
+**FIXED**
+- The new-transaction form no longer says "No categories yet" while the categories are still loading (it was
+  most visible right after signing in).
+
 **REMOVED**
 - The on-phone SQLite tables and their migrations (`src/db/database.ts`). The old file is kept, read only.
 
@@ -50,7 +54,7 @@ purpose — MAJOR by the rules, MINOR under `0.x` (§10.2). Old backups still re
 - Tests: 161. The migrations run on PGlite (Postgres in WebAssembly, dev dependency) with Supabase's auth stubbed:
   RLS between two accounts, constraints, restore. Logic tests use in-memory rows. `npm run test:live` checks the
   repositories against the project on two test accounts (needs `.env.test.local`; refuses an email without
-  "test" in it, since it empties both accounts).
+  "test" in it unless it is listed in `TANGTU_LIVE_ALLOW_EMAILS`, since it empties both accounts).
 
 ---
 

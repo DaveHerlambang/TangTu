@@ -2,7 +2,8 @@
 // §14.15). Not part of `npm test`: run `npm run test:live` with `.env.test.local` holding
 //   TANGTU_LIVE_URL, TANGTU_LIVE_KEY (publishable), TANGTU_LIVE_A_EMAIL, TANGTU_LIVE_A_PASSWORD,
 //   TANGTU_LIVE_B_EMAIL, TANGTU_LIVE_B_PASSWORD   (two accounts made in that project's dashboard)
-// It EMPTIES both accounts first, so it refuses an email without "test" before the "@" (e.g. you+test-a@gmail.com). What it proves: the app's calls work through PostgREST (embedding, paging,
+// It EMPTIES both accounts first, so it refuses an email without "test" before the "@" (e.g. you+test-a@gmail.com),
+// unless that exact email is listed in TANGTU_LIVE_ALLOW_EMAILS (comma-separated): the owner's say-so that it is a test account. What it proves: the app's calls work through PostgREST (embedding, paging,
 // upserts for Undo, the database functions), and row level security holds between two signed-in accounts.
 import assert from 'node:assert/strict';
 import { before, describe, test } from 'node:test';
@@ -52,10 +53,11 @@ const configured = [
 ].every(env);
 
 /** Both accounts are emptied: only test accounts, by name, so a real account in the settings by mistake is never touched. */
-const isTestEmail = (email: string) => /test/i.test(email.split('@')[0] ?? '');
+const allowed = env('TANGTU_LIVE_ALLOW_EMAILS').toLowerCase().split(',').map((e) => e.trim()).filter(Boolean);
+const isTestEmail = (email: string) => /test/i.test(email.split('@')[0] ?? '') || allowed.includes(email.trim().toLowerCase());
 
 async function signedIn(email: string, password: string): Promise<Db> {
-  if (!isTestEmail(email)) throw new Error(`refusing ${email}: this check empties the account; use one with "test" before the @`);
+  if (!isTestEmail(email)) throw new Error(`refusing ${email}: this check empties the account; use one with "test" before the @, or list it in TANGTU_LIVE_ALLOW_EMAILS`);
   const db = createClient<Database>(env('TANGTU_LIVE_URL'), env('TANGTU_LIVE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } });
   const { error } = await db.auth.signInWithPassword({ email, password });
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`);

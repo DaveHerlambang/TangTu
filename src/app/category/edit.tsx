@@ -1,5 +1,4 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -28,6 +27,7 @@ import {
   putCategory,
   updateCategory,
 } from '@/db/categoriesRepository';
+import type { Db } from '@/db/db';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { useT } from '@/i18n';
 import { useAppStore } from '@/store/useAppStore';
@@ -57,7 +57,7 @@ const invalidate = () => useAppStore.getState().invalidateData();
  */
 export default function CategoryEditorScreen() {
   const params = useLocalSearchParams<{ id?: string; kind?: string; pick?: string }>();
-  const editId = params.id ? Number(params.id) : null;
+  const editId = params.id || null;
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const c = theme.colors;
@@ -66,7 +66,7 @@ export default function CategoryEditorScreen() {
 
   const [kind, setKind] = useState<CategoryKind>(params.kind === 'INCOME' ? 'INCOME' : 'EXPENSE');
   const load = useCallback(
-    async (db: SQLiteDatabase) => {
+    async (db: Db) => {
       const existing = editId === null ? null : await getCategory(db, editId);
       const k = existing?.kind ?? kind;
       return { kind: k, existing, active: await listCategories(db, k), tint: await nextTint(db, k) };
@@ -367,7 +367,7 @@ export default function CategoryEditorScreen() {
 }
 
 /** Undo: put the category back exactly as it was before the action. */
-async function undoTo(db: SQLiteDatabase, snapshot: Category) {
+async function undoTo(db: Db, snapshot: Category) {
   await putCategory(db, snapshot);
   invalidate();
 }

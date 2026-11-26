@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { SortableList } from '@/components/SortableList';
 import { Touchable } from '@/components/Touchable';
 import { listArchivedCategories, listCategories, putCategory, reorderCategories, restoreCategory } from '@/db/categoriesRepository';
+import type { Db } from '@/db/db';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { useT } from '@/i18n';
 import { useAppStore } from '@/store/useAppStore';
@@ -39,7 +39,7 @@ export default function CategoriesScreen() {
   const [dragging, setDragging] = useState(false);
 
   const load = useCallback(
-    async (db: SQLiteDatabase) => ({ active: await listCategories(db, kind), archived: await listArchivedCategories(db, kind) }),
+    async (db: Db) => ({ active: await listCategories(db, kind), archived: await listArchivedCategories(db, kind) }),
     [kind],
   );
   const { data, db, reload } = useDbQuery(load);

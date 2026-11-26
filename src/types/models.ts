@@ -5,14 +5,17 @@ import type { Currency } from '@/utils/money';
 
 export type CategoryKind = 'EXPENSE' | 'INCOME';
 
+/** A row's id: a UUID made by the database (since 0.5.0; whole numbers before, on the phone). */
+export type Id = string;
+
 /** A row of `Transactions` (§3). */
 export interface Transaction {
-  id: number;
+  id: Id;
   kind: CategoryKind;
   /** > 0, in the smallest unit of `currency`; the sign comes from `kind`. */
   amount: number;
   currency: Currency;
-  category_id: number;
+  category_id: Id;
   /** '' when there is none. */
   note: string;
   /** ISO UTC; "today", periods and display use device local time. */
@@ -29,7 +32,7 @@ export const CATEGORY_KINDS: readonly CategoryKind[] = ['EXPENSE', 'INCOME'];
 
 /** A row of `Categories` (§3). */
 export interface Category {
-  id: number;
+  id: Id;
   /** What the user typed. NULL = an untouched template category, named from the dictionary (§6.5). */
   name: string | null;
   /** The §7.3 template it was made from; NULL for a category made from scratch. */

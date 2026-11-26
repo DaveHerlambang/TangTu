@@ -1,5 +1,4 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useMemo } from 'react';
 import { SectionList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,10 +7,12 @@ import { AppText } from '@/components/AppText';
 import { Card } from '@/components/Card';
 import { CategoryBadge } from '@/components/CategoryBadge';
 import { Icon } from '@/components/Icon';
+import { LoadError } from '@/components/LoadError';
 import { MonthSwitcher } from '@/components/MonthSwitcher';
 import { SpendTrend } from '@/components/SpendTrend';
 import { Touchable } from '@/components/Touchable';
 import { getCategory } from '@/db/categoriesRepository';
+import type { Db } from '@/db/db';
 import { listTransactions } from '@/db/transactionsRepository';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { usePeriodSettings, useSelectedPeriod } from '@/hooks/usePeriodSettings';
@@ -38,19 +39,19 @@ export default function CategoryScreen() {
   const translator = useT();
   const { t, tp, lang } = translator;
   const { id } = useLocalSearchParams<{ id: string }>();
-  const categoryId = Number(id);
+  const categoryId = id ?? '';
   const { startDay } = usePeriodSettings();
   const { key, setKey } = useSelectedPeriod();
   const currency = DEFAULT_CURRENCY;
 
   const load = useCallback(
-    async (db: SQLiteDatabase) => {
+    async (db: Db) => {
       const [category, rows] = await Promise.all([getCategory(db, categoryId), listTransactions(db, periodRange(key, startDay))]);
       return { category, rows };
     },
     [categoryId, key, startDay],
   );
-  const { data, error } = useDbQuery(load);
+  const { data, error, reload } = useDbQuery(load);
   const { points, current } = useSpendTrend(key, categoryId);
   const actions = useTransactionActions();
 
@@ -83,9 +84,7 @@ export default function CategoryScreen() {
     <View style={{ gap: spacing.lg, marginBottom: spacing.xs }}>
       <MonthSwitcher month={key} onChange={setKey} />
       {error ? (
-        <Card>
-          <AppText tone="danger">{t('home.loadError')}</AppText>
-        </Card>
+        <LoadError onRetry={() => void reload()} />
       ) : null}
       <Card style={{ gap: spacing.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>

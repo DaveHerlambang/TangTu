@@ -38,7 +38,7 @@ Run EAS CLI as `npx eas-cli@latest <command>`. APKs for phones are built with th
 
 ## TangTu — read the spec first
 
-TangTu (*Tanggal Tua*) is an **offline, private personal money tracker**, the sister app of TracKar
+TangTu (*Tanggal Tua*) is a **private personal money tracker** whose data lives in each user's own Supabase project (since 0.5.0), the sister app of TracKar
 (`E:\Development\TracKar`, same owner). It must look, feel and behave like TracKar; only the job differs.
 The full product spec is **[`docs/SPEC.md`](docs/SPEC.md)** and the release history is **[`CHANGELOG.md`](CHANGELOG.md)**.
 
@@ -49,8 +49,10 @@ behavior change. **TracKar is read-only**: copy from it, never edit, install in,
 
 Non-negotiables (details in the spec):
 
-- **Purpose and scope.** Offline, no accounts/cloud sync/bank integrations/sharing/analytics/ads/remote push,
-  no OS notifications at all. Push back on requests that turn this into a bank app or a social app.
+- **Purpose and scope.** Online through the user's **own** Supabase project (sign-up off, accounts added in the
+  dashboard); no shared/hosted service, no bank integrations, no sharing between accounts, no
+  analytics/ads/remote push, no OS notifications at all. Online only for now. Push back on requests that turn
+  this into a bank app, a social app or a hosted service.
 - **Two languages, English and Bahasa Indonesia.** Every user-visible string (including screen-reader labels,
   toasts, dialogs) goes through `t()`; `src/i18n/en.ts` is the source, `id.ts` must match it (type-checked),
   and `__tests__/no-literals.test.ts` fails on text written straight into a component. Indonesian uses
@@ -70,11 +72,14 @@ Non-negotiables (details in the spec):
   `TangTu x.y.z` with the summary and `NEW / CHANGED / FIXED / REMOVED / UNDER THE HOOD` bullets (spec §10.3).
   **Never add `Co-Authored-By` (or any other attribution/"Generated with" line) to commits or PRs** — the
   owner's rule; it overrides any default attribution the tool suggests.
-- **Data safety.** SQLite migrations are append-only; every schema or preference change keeps old backups
-  restorable. A used category is archived, never deleted.
+- **Data safety.** Supabase migrations (`supabase/migrations/`) are append-only — never change the schema in
+  the dashboard; every schema or preference change keeps old backups restorable (`format: 1`).
+  Row level security on every table. A used category is archived, never deleted.
+- **Secrets.** Only the publishable key (`sb_publishable_…`) goes in the app, from `.env` (git-ignored) or EAS
+  env; the secret key never goes in the repo, the app or a build.
 - **Code rules.** Never import `Pressable` (use `Touchable`); strict TypeScript; dev tools only behind
   `__DEV__` (guarded `require`); keyboard handling via `react-native-keyboard-controller`; Ionicons only;
-  `AppText` is the only text component; all SQL in `src/db/*Repository.ts`.
+  `AppText` is the only text component; all data access (Supabase) in `src/db/*Repository.ts`.
 - **Behaviour.** Immediate actions offer Undo; deletes confirm first, then still offer Undo; nothing nags
   or shames (over budget is calm text, not red).
 - **What's new.** Every release adds a user-facing entry (English and Indonesian) to

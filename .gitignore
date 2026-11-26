@@ -30,8 +30,17 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# local env files: the Supabase settings of each build (§0.4) never go in git; only the example does
+# (.env, .env.development, .env.test.local with the live check's test accounts, ...)
+.env
+.env.*
+!.env.example
+
+# Supabase CLI: everything it keeps on this machine (config.toml from `supabase init`, the linked project in
+# .temp/, branches, its own .env files) stays here. Only the migrations are shared: they hold no data and no
+# keys, just the tables, and every self-hoster's project is built from them (README, §0.4).
+supabase/*
+!supabase/migrations/
 
 # typescript
 *.tsbuildinfo

@@ -13,6 +13,10 @@ living spec. Decisions made since are written into the sections they affect and 
 > patterns); only the *job* differs: TracKar tracks work, TangTu tracks money. **Don't re-invent TracKar's
 > pieces: copy them from its folder (§0 step 4) and adapt.** If this brief and TracKar's code disagree on
 > a design detail, TracKar's code wins; ask if unsure.
+>
+> **Since 0.5.0 TangTu is online** (owner, 2026-11-26): its data lives in the user's **own Supabase project**
+> (§0.4, §3, §11), while TracKar stays offline. The look, feel and interaction patterns are still TracKar's;
+> the data layer is not. Where this file still describes the offline app, the online rules win.
 
 ---
 
@@ -46,6 +50,8 @@ full name and tagline are Indonesian **brand lines** and stay Indonesian in both
   §10 (data, backup), and the comments in every file you copy — they explain hard-won fixes.
 
 ### 0.3 Setup, step by step (do them in order; verify before moving on)
+
+*History: how the project was created for 0.1.0, as an offline app. To run your own copy today, see §0.4.*
 
 **Step 1 — Create the project.** Check the current Expo docs first (`https://docs.expo.dev/llms.txt`,
 "create a project"); templates and flags change between SDKs.
@@ -124,15 +130,43 @@ TracKar's), `CHANGELOG.md`.
 The owner creates the remote repository (`https://github.com/DaveHerlambang/TangTu`). Branches, tags and
 commit messages follow §10.3. **Never push without being asked.**
 
+### 0.4 Running your own TangTu (since 0.5.0)
+
+TangTu has **no shared server**: everyone who uses it runs their own free Supabase project, and only the
+people they add can sign in (owner, 2026-11-26). The README carries these steps in plain words.
+
+1. **Create a Supabase project** (the free plan is enough: 500 MB database). Free projects are **paused after
+   a week without use**; the app can't reach the data until the project is resumed in the dashboard (§5).
+2. **Apply the schema** in `supabase/migrations/` with the Supabase CLI (`supabase init` once, `supabase login`,
+   `supabase link`, then `supabase db push`; check the CLI docs for the current flags). Never change the schema
+   in the dashboard's SQL or table editor: it bypasses the migration history and later pushes fail. Git ignores
+   everything in `supabase/` but the migrations (the CLI's `config.toml`, the linked project): owner, 2026-11-26.
+   **The owner's projects use Supabase's GitHub integration instead of the CLI** (owner, 2026-11-26): Project
+   Settings → Integrations → GitHub, working directory `.`, "Deploy to production" on, "Automatic branching" off
+   (preview branches are a paid feature and not needed). A push to the project's production branch applies the
+   migrations not applied yet. One project only (§14.15): it follows `release/0.5.0` while 0.5.0 is tested and
+   `master` from then on. No `config.toml` in the repo, so the integration never changes the project's auth or
+   API settings.
+3. **Close the door:** Authentication → turn **off** "Allow new users to sign up". Then Authentication →
+   Users → **Add user** for each person who may sign in (email + password, "Auto Confirm User" ticked).
+4. **Connect the app:** copy `.env.example` to `.env` and fill `EXPO_PUBLIC_SUPABASE_URL` and
+   `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the **publishable** key, `sb_publishable_…`). EAS builds take the
+   same two from EAS environment variables. **Never the secret key** (`sb_secret_…`): it bypasses row level
+   security and must never be in the app, the repo or a build.
+5. **Build and sign in:** `npx eas-cli@latest build -p android --profile preview`, install the APK, sign in
+   with a user from step 3. (iPhone: the web app, phase 9.)
+
 ---
 
 ## 1. Product
 
-**One sentence:** an offline, private, beautiful app to record where your money goes, in categories you
-define yourself (each with its own icon and colour), with charts that make the month obvious at a glance.
+**One sentence:** a private, beautiful app to record where your money goes, in categories you define
+yourself (each with its own icon and colour), with charts that make the month obvious at a glance. The data
+lives in the user's own Supabase project (since 0.5.0; before that only on the phone).
 
-**User:** anyone with a phone and a monthly budget — first the owner, possibly a public release later.
-Not technical. Opens the app several times a day to log a purchase in seconds, and once in a while to
+**User:** anyone with a phone and a monthly budget — first the owner (on iPhone, through the web app,
+phase 9), and anyone who builds the Android APK from the public repository with their own Supabase project
+(§0.4). Whoever sets it up follows §0.4 once; the person using it every day is not technical. Opens the app several times a day to log a purchase in seconds, and once in a while to
 look at the month. (Unlike TracKar, nothing personal in the copy: no names, no pet names.)
 
 **Principles**
@@ -140,27 +174,41 @@ look at the month. (Unlike TracKar, nothing personal in the copy: no names, no p
 2. **A category is recognisable without reading** — every category has an icon and a colour (§7).
 3. **Charts answer one question each**, clearly: where did it go / is this month worse / which days.
 4. **Calm, warm, playful-but-not-childish** (TracKar's tone). Nothing nags or shames.
-5. **Offline and private.** No account, no server, no analytics, no ads. Data lives on the phone; the
-   user backs it up to a file.
-6. **Never lose data.** Append-only migrations, validated backups, undo for destructive actions.
+5. **Private: your data, your server.** Data lives in the user's own Supabase project, readable only by the
+   account that wrote it (row level security, §3). No shared server run by anyone else, no public sign-up, no
+   analytics, no ads; the app talks to that one project and nothing else. Everything can still be exported
+   to a file (§11).
+6. **Never lose data.** Append-only migrations, validated backups, all-or-nothing restore, undo for
+   destructive actions, and a save that fails keeps what was typed.
 
-**Non-goals (push back if asked):** accounts/login, cloud sync, bank or e-wallet integrations, multi-user
-or sharing, social features, investments/stocks/crypto, ads, analytics/telemetry, remote push
-notifications, web build, tablet layouts. A request that turns this into a bank app or a social app should
-be challenged before it is built.
+**Non-goals (push back if asked):** a shared or hosted service, public sign-up (each person runs their own
+project, §0.4), bank or e-wallet integrations, sharing data between accounts, social features,
+investments/stocks/crypto, ads, analytics/telemetry, remote push notifications, a native iOS build or the
+App Store (iPhone uses the web app), tablet layouts, and — for now — an offline mode (§5). A request that
+turns this into a bank app or a social app should be challenged before it is built.
+
+*Changed 2026-11-26 (owner): accounts/login, online data and the web build left the non-goals when TangTu
+went online (§14.9–12).*
 
 ---
 
-## 2. Platform & stack (identical to TracKar)
+## 2. Platform & stack (TracKar's, plus Supabase)
 
-- **Target:** Android (real use). iOS only through Expo Go during development.
+- **Target:** Android APK (each user builds their own, §0.4) and, from phase 9, a **web app installable as a
+  PWA** (the owner's iPhone, Home Screen). Native iOS only through Expo Go during development.
 - **Expo** managed workflow with Continuous Native Generation (never hand-edit `android/`/`ios/`),
   **Expo Router** with typed routes, **TypeScript strict**, React 19, New Architecture.
   - TracKar is on **Expo SDK 57**. Use the newest stable SDK at project start and **read the versioned
     docs** (`https://docs.expo.dev/versions/v<major>.0.0/`); never code Expo APIs from memory.
   - Always add packages with `npx expo install <pkg>`; run `npx expo install --fix` before every release.
-- **Data:** `expo-sqlite` (single source of truth). **Zustand** for UI preferences only, persisted to
-  `expo-sqlite/kv-store`.
+- **Data (since 0.5.0):** **Supabase** (Postgres + Auth) is the single source of truth, through
+  `@supabase/supabase-js`. On the device only: Zustand (UI preferences, device markers) persisted to
+  `expo-sqlite/kv-store`, and the signed-in session in `expo-sqlite`'s `localStorage` (as in Supabase's Expo
+  guide). Set the client up from Supabase's **current** Expo guide (URL polyfill, auth storage,
+  `detectSessionInUrl: false`), never from memory.
+- **Config:** `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, from `.env` (git-ignored;
+  `.env.example` is in the repo) or EAS environment variables. A build without them opens a "not set up yet"
+  screen (§4), never a crash.
 - **UI:** `react-native-reanimated` 4 (`.get()`/`.set()` on shared values) + `react-native-worklets`,
   `react-native-gesture-handler`, `react-native-keyboard-controller` (all keyboard handling),
   `react-native-svg`, `@expo/vector-icons` (**Ionicons only**), `@expo-google-fonts/nunito`, `expo-haptics`,
@@ -179,16 +227,35 @@ be challenged before it is built.
 
 ## 3. Domain model
 
-All money is **integer rupiah** (no floats, no cents). All timestamps are **ISO-8601 UTC strings** (lexical
-order = chronological); "today", periods and display use **device local time**.
+All money is **integer rupiah** (no floats, no cents). All timestamps are **ISO-8601 UTC strings** in the
+app (lexical order = chronological); "today", periods and display use **device local time**. Postgres keeps
+them as `timestamptz`; repositories turn what Supabase returns (`…+00:00`) back into `toISOString()` form on
+read, so the rule holds everywhere.
 
-### Tables (SQLite, schema version = `PRAGMA user_version`, migrations append-only)
+### Tables (Supabase Postgres since 0.5.0; migrations in `supabase/migrations/`, append-only)
+
+*Before 0.5.0 these were SQLite tables on the phone (`PRAGMA user_version`); that data moves online through a
+backup (§11). Column names stay as they were. Since 0.5.0 every `id` (and `category_id`) is a **UUID** made by
+the database (`gen_random_uuid()`, owner 2026-11-26): it says nothing about how many rows anyone has, can't be
+guessed, and a later offline or web version can make ids itself. It is a default, not a generated column, so
+Undo can put a row back with its own id. Every table also has `user_id uuid not null default auth.uid()
+references auth.users`. A restore gives rows new ids and keeps every reference (§11), so one account's backup
+can go into another while the first still has its rows. Ties in an order fall back on `created_at`, then `id`.*
 | Table | Columns (essentials) | Notes |
 |---|---|---|
 | `Categories` | `id`, `name` (NULL for an untouched template category), `template_key` (categories made from a §7.3 template, e.g. `food`; NULL otherwise), `kind` (`EXPENSE` \| `INCOME`), `icon` (Ionicons name from §7.2), `tint` (key from §7.1), `position`, `archived_at` (NULL = active), `created_at` | User-defined. Active names unique per kind. |
 | `Transactions` | `id`, `kind` (`EXPENSE` \| `INCOME`), `amount` (INTEGER > 0), `category_id` → Categories, `note`, `occurred_at`, `created_at`, `updated_at` | Sign comes from `kind`, never a negative amount. |
 | `Budgets` *(phase 7)* | `id`, `category_id`, `amount`, `from_period` | Applies from that period onward (like TracKar's salary history). |
-| `Activity` | `id`, `kind`, `params` (JSON), `ref_type`, `ref_id`, `dedupe_key`, `created_at` — in-app message history (§8.7) | Stores *what happened*, not sentences: text is rendered in the current language. Not backed up; cleared on restore. |
+| `Activity` | `id`, `kind`, `params` (JSON), `ref_type`, `ref_id`, `dedupe_key`, `created_at` — in-app message history (§8.7) | Stores *what happened*, not sentences: text is rendered in the current language. Not backed up; cleared on restore. Online since 0.5.0 with `dedupe_key` unique per account, so two devices never write the same message twice. |
+
+**Security and integrity (in the migrations, not only in the app)**
+- **Row level security on every table.** Policies `to authenticated` with `(select auth.uid()) = user_id` for
+  select, insert, update and delete; nothing for `anon`; `user_id` indexed. One account never sees or
+  changes another's rows — this is the only thing between the data and anyone holding the publishable key.
+- The schema enforces what the app assumes: `kind` in (`EXPENSE`, `INCOME`), `amount > 0`, active category
+  names unique per account and kind, and a transaction's category belongs to the same account and kind.
+- **Restore is one database function** (`replace_all_data`, security invoker): all of the account's rows are
+  replaced in one transaction, or nothing changes (§11).
 
 **Rules**
 - **A used category is never hard-deleted.** "Delete" on a category with transactions = **archive** (gone
@@ -197,7 +264,8 @@ order = chronological); "today", periods and display use **device local time**.
 - **Changing a category's icon or tint changes it everywhere, including history** (it's identity, not a
   per-transaction snapshot).
 - **Totals for a period:** spent = Σ EXPENSE; income = Σ INCOME; **left = income − spent**. One function
-  computes these and every screen uses it (Home, charts and category screens must never disagree).
+  computes these and every screen uses it (Home, charts and category screens must never disagree). Since
+  0.5.0 it runs in TypeScript over the rows fetched for the range, not as separate sums per screen.
 - Money format: `Rp 1.250.000` (dot thousands, TracKar's hand-rolled formatter), negatives `-Rp 15.000`.
 
 ### Periods
@@ -224,7 +292,8 @@ on Home (TracKar's dashboard header).
 | `category/[id]` | One category: total for the period, its trend, its transactions |
 | `day/[date]` | One day's transactions (opened from the daily chart) |
 | `notifications` | The bell's history (§8.7) |
-| `settings` | Theme, language (§6.5), period start day, categories, backup / restore / undo restore, last backup, What's new |
+| `settings` | Theme, language (§6.5), period start day, categories, backup / restore / undo restore, last backup, What's new, **account** (since 0.5.0: "Signed in as …", Sign out) |
+| `sign-in` | Since 0.5.0. Email + password, shown whenever no one is signed in. No "sign up" (accounts are made in the dashboard, §0.4) and no password reset in the app (§14.13). A build without Supabase settings shows here that the app isn't set up yet, pointing to the README. "Remember me" = the email of the last successful sign-in is filled in (owner, 2026-11-26; a device marker, kept on sign-out, never the password, never in a backup). The session itself always stays until Sign out. |
 | `whats-new` | User-facing release notes (TracKar's page and version picker) |
 
 ### Home
@@ -281,6 +350,12 @@ Top to bottom, in the order you think it (layout since 0.2.0, owner-approved):
 - **Acts immediately, offers Undo:** saving, editing, archiving.
 - **Deleting asks first, then still offers Undo** ("Delete this transaction?" → toast with Undo).
 - **Restoring a backup confirms** (replaces everything) and keeps a safety copy (§11).
+- **Online, calmly** (since 0.5.0): reading and saving need a connection. No connection, or a paused project,
+  shows "Can't reach your data" with **Try again** — never a technical message, and never an empty screen that
+  looks like there is no data. A save that fails keeps the form open with everything typed and says so;
+  nothing is half-saved. An Undo that fails says so too.
+- **Signing out asks first** ("Sign out? Your data stays in your Supabase project.") and clears this device's
+  markers (§11), so the next account starts clean.
 - **No nagging:** no budget-exceeded notifications, no streaks, no red shaming. Over budget is shown
   calmly ("Rp 50.000 over", in `text`, not `danger`).
 - **Swipe left** on a row → **Again** (log the same amount and category now) · **Edit** · **Delete**;
@@ -522,7 +597,8 @@ a template brings its own tint. Editing an existing category uses the same edito
    on leaving the screen and in the background; both layers mounted and cross-faded (240 ms, 4 pt drift);
    screen readers hear "hidden". Lists and charts are not hidden (they need a tap to reach).
 7. **The bell (in-app history, no OS notifications):** red dot until opened; rows store `kind` + `params` and
-   are written out in the current language when shown (§6.5). Checked at launch and when the app comes back.
+   are written out in the current language when shown (§6.5). Since 0.5.0 the history is online, one per
+   account; "seen" and the recap markers stay on the device. Checked at launch and when the app comes back.
    - **"September recap"** at the start of a period: spent · income · left (only "Spent X" when there was no
      income), count, top 3 categories, **biggest purchase** (its note, else its category), and **"Higher /
      Lower than usual: …"** for top categories at ≥ 1.25× / ≤ 0.75× their average over the 3 periods before
@@ -578,7 +654,7 @@ These rules are **binding**. Every change that reaches `master` is a release wit
 |---|---|---|
 | **Version** `MAJOR.MINOR.PATCH` | `app.json` `expo.version`, `package.json` `version`, both `version` fields at the top of `package-lock.json` — **all must match** | Semantic, §10.2. Shown to the user (About, What's new). |
 | **versionCode** (Android build number) | EAS remote counter (`appVersionSource: "remote"`, `autoIncrement`) | Automatic. **Never edit by hand.** |
-| **Schema version** | `PRAGMA user_version` (SQLite), backup `schemaVersion` | Goes up only with a new migration. Separate from the app version. |
+| **Schema version** | Supabase migrations (`supabase/migrations/`, since 0.5.0; before: `PRAGMA user_version`), backup `format` / `schemaVersion` | Goes up only with a new migration. Separate from the app version. |
 
 ### 10.2 What each part means for TangTu ([Semantic Versioning 2.0.0](https://semver.org))
 
@@ -642,7 +718,13 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
    `npx --yes npm@10.9.8 install --package-lock-only`.
 4. All green: `npm run typecheck`, `npm test`, `npx expo lint`, `npx expo-doctor`,
    `npx --yes npm@10.9.8 ci --dry-run --include=dev`, `npx expo export --platform android`; the exported
-   bundle contains no dev tools (no mock data, no dev gear).
+   bundle contains no dev tools (no mock data, no dev gear) and no secret key (no match for
+   `sb_secret_[A-Za-z0-9]{20,}`; supabase-js itself carries the bare prefix, which Hermes' string table can run
+   into the next string, e.g. `sb_secret__makeTemplateObject`); `.env` is not in git.
+   - A release with a new migration: there is no development project (§14.15), so the migration reaches the real
+     data when `master` is pushed. Before that, the owner exports a backup; the migration must already pass the
+     PGlite tests; after the push, run `npm run test:live` (test accounts only) before installing the build. Say in `CHANGELOG.md` and the README that self-hosters must run
+     `supabase db push` (or have the GitHub integration on) before updating.
 5. Propose the release commit message (§10.3). The owner decides.
 6. On the owner's go-ahead: commit, `git push -u origin release/x.y.z`, `git switch master`,
    `git merge --ff-only release/x.y.z`, `git tag -a vX.Y.Z -m "TangTu x.y.z"`,
@@ -653,8 +735,18 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
 
 ## 11. Data safety & backup (TracKar's design, proven)
 
-- **Append-only migrations** (`PRAGMA user_version`); every schema/preference change keeps old backups restorable.
-- **Backup = JSON** (`format: 1`): all tables + preferences, through the share sheet (Drive, Files…).
+- **Since 0.5.0 the data lives in the user's Supabase project.** Migrations in `supabase/migrations/` are
+  append-only (never edit one that shipped); every schema or preference change keeps old backups restorable.
+  The user's own backup file is the backup: Supabase's free plan isn't counted on for that.
+- **Backup = JSON**: all of the signed-in account's categories and transactions + preferences, through the
+  share sheet (Drive, Files…). Still **`format: 1`**, the same shape as 0.1.0–0.4.x (no `user_id` in the
+  file): every older backup restores, and a backup from the online version restores into another account.
+  `schemaVersion` is **4** since 0.5.0 (UUID ids; 3 had whole-number ids): the offline version refuses a 0.5.0
+  file as "from a newer version" instead of failing halfway, and 0.5.0 reads 1–4.
+- **Data from the offline version moves online by itself being offered:** 0.5.0 still opens the old
+  `tangtu.db` on an Android phone (read only, never changed or deleted). Signed in to an account with no data,
+  the app offers "Move it to this account" (the same all-or-nothing restore); the old file stays as it was.
+  Exporting a backup in 0.4.x and restoring it in 0.5.0 works too.
   Android can't tell "saved" from "cancelled", so afterwards ask **"Did you save the backup?"**; only
   "Yes, saved" updates **"Last backup: 12 days ago"** in Settings (passive text, no reminders).
 - **Restore** treats files as untrusted: reject non-app files, newer schemas, damaged tables, empty
@@ -664,16 +756,23 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
 - The export file and the picked file are temporary copies of all the data in the app's cache: the picked
   copy is deleted once read; older export files are deleted at the next export (the newest stays, since the
   app it was shared with may still be reading it).
-- **Safety copy + Undo restore** for 7 days (`pre-restore-backup.json` in the document directory, verified
-  before anything is replaced; refuse the restore if it can't be written).
-- Device markers (last backup, bell seen, last recap) never travel in backups.
+- A restore replaces **only the signed-in account's** data, in one database call (§3), all-or-nothing.
+- **Safety copy + Undo restore** for 7 days: the current online data is downloaded into
+  `pre-restore-backup.json` in the document directory and verified before anything is replaced; refuse the
+  restore if it can't be written.
+- Device markers (last backup, bell seen, last recap) never travel in backups, and are cleared on sign-out; so
+  is the safety copy, so "Undo restore" can never put one account's data into the next one signed in.
+- The session lives on the device (§2); signing out removes it.
 
 ---
 
 ## 12. Engineering rules
 
-- Routes only in `src/app/`; `@/` → `src/`; all SQL in `src/db/*Repository.ts`; screens read through
-  `useDbQuery` (re-runs on focus and on a `dataVersion` bump after writes).
+- Routes only in `src/app/`; `@/` → `src/`; **all data access** (Supabase queries and database function calls)
+  in `src/db/*Repository.ts`, with the client made in one file; screens never call Supabase directly and read
+  through `useDbQuery` (re-runs on focus and on a `dataVersion` bump after writes).
+- **Secrets:** only the publishable key is in the app; `.env` is git-ignored; the secret key is never in the
+  repo, the app or a build. Row level security is the security boundary: every table has it (§3).
 - Strict TypeScript; never import `Pressable` (use `Touchable`); keyboard via `react-native-keyboard-controller`.
 - **A screen opens once:** every screen on the root stack is declared in `src/app/_layout.tsx` with
   `dangerouslySingular`, so a double tap (or a slow phone) brings the open screen forward instead of stacking a
@@ -686,10 +785,20 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
 - **Errors the user sees** are always words from the dictionaries: a `DomainError` explains itself; anything
   else shows a plain "try again" message, never its technical text.
 - **Every user-visible string goes through `t()`** (§6.5); a test fails on string literals rendered in components.
+- **Dev tools touch real data since 0.5.0:** "Nuke" and "Mock data" replace the signed-in account's data, so
+  they confirm first and are only ever used signed in to a **test account** (§14.15), never the owner's own.
 - **Dev tools only behind `__DEV__`** (guarded `require`): gear with "Nuke database" and
   **"Mock data · 6 months / 1 year"** (deterministic, replaces everything; realistic spending per category,
   a few big months and quiet months, salary on the start day). Verify release bundles don't contain them.
-- **Tests kept in the repo** (`scripts/` or `__tests__/`), run against real SQLite (`node:sqlite` + Node
+- **Live check (optional, since 0.5.0):** `npm run test:live` runs the repositories against the development
+  project with two accounts (`.env.test.local`, git-ignored; it empties both): embedding, paging past 1000 rows,
+  Undo upserts, the database functions, RLS through PostgREST. Run it after a migration or a data-layer change.
+- **Tests since 0.5.0:** pure logic (totals, periods, backup validation, recap builders over rows, category
+  name rules, bell text) runs in Node with no server. The migrations themselves (schema, constraints, row level
+  security between two accounts, `replace_all_data` with its new ids) run in Node too, on PGlite (Postgres in
+  WebAssembly, a dev dependency — no Docker), with Supabase's `auth.uid()` stubbed. Database rules (schema, row level security between two accounts,
+  `replace_all_data`) are tested against a local Supabase (`supabase start`, needs Docker) — not used (§14.14): checked with `npm run test:live` on test accounts.
+- **Tests kept in the repo** (`scripts/` or `__tests__/`), until 0.5.0 run against real SQLite (`node:sqlite` + Node
   type stripping): totals, period bucketing (start days 1/25/31), archive rules, most-used ordering,
   backup validation, migrations from every older schema, contrast of every theme token and tint, month/weekday
   tables in both languages, template categories following the language until renamed.
@@ -710,6 +819,17 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
 6. **Polish:** eye, search + filters, period start day, bell + period recap, What's new, release APK.
 7. *(Owner decides)* app icon, budgets per category (calm ring like TracKar's content goal), recurring
    transactions, wallets (Cash / Bank / E-wallet) with transfers, app lock.
+8. **Go online (0.5.0):** Supabase schema + row level security migrations, client and config, sign-in /
+   sign-out, repositories over Supabase, restore through one database function (new ids, `format: 1`), moving
+   the offline version's data,
+   calm no-connection states, the README's self-hosting guide (§0.4), `allowBackup: false` (§14.16).
+9. **Web app + PWA (after 8):** Expo web export deployed to Vercel, manifest + service worker, backup as a
+   download / file picker on the web, checked on the owner's iPhone from the Home Screen. **Wide screens use
+   layout E, "Buku kas"** (owner, 2026-11-26, from five proposals on a Claude canvas): a quick-entry row on top
+   (Expense | Income · amount · category · note · day · Save, all by keyboard: Tab between fields, Enter saves
+   and returns to the amount), a table of transactions below with the search filters (dates, categories)
+   always visible on the left, and totals in one line above. Narrow screens (the iPhone) keep the phone
+   layout.
 
 ---
 
@@ -746,6 +866,25 @@ Answered 2026-11-18:
    | Cherry Blossom `danger` on `track` | `#C33F55` 4.21:1 | `#BB3C52` | 4.52:1 |
    | Light `outline` on `background` | `#8E94A3` 2.83:1 | `#898F9D` | 3.02:1 |
 
+Answered 2026-11-26 (going online):
+9. **TangTu goes online with Supabase**; it is no longer an offline app. A change of purpose is MAJOR, which
+   under `0.x` becomes MINOR: **0.5.0** (§10.2). Old backups stay restorable (§11).
+10. **Everyone runs their own Supabase project** (§0.4); sign-up off, accounts added in the dashboard. Nobody
+    hosts other people's data.
+11. **Online only at first**; an offline mode may come later.
+12. **iPhone through the web app / PWA** (phase 9, after going online); Android users build the APK.
+
+13. **No password reset in the app for now** (owner, 2026-11-26): a password is reset from the dashboard.
+14. **No Docker** (owner, 2026-11-26): the row level security and restore rules are checked with
+    `npm run test:live` on two test accounts (15); the results go in §16 for each release that touches them.
+15. **One Supabase project, no development project** (owner, 2026-11-26, reversing "a separate project" the
+    same day): testing happens in the owner's `tangtu` project. Separation is by account instead: two test
+    accounts (an email with "test" in it, e.g. `you+test-a@gmail.com`) for `npm run test:live`, which refuses
+    any other email because it empties both; mock data and Nuke only while signed in to a test account. The
+    cost: a new migration meets the real data with no rehearsal, so a backup comes first (§10).
+16. **S1 — Android auto-backup off** (owner, 2026-11-26): `allowBackup: false`, since the phone now keeps only
+    preferences and the session, and the session must not land in a Google Drive backup.
+
 Still open:
 7. *(Later)* app icon artwork; final name check before any public release.
 
@@ -762,6 +901,10 @@ Still open:
   language applies at once; untouched template categories and bell messages follow it.
 - [ ] Every destructive action confirms and/or offers Undo; backup → uninstall → restore brings everything back.
 - [ ] Release APK has no dev tools and no TracKar leftovers; `tsc`, lint, `expo-doctor`, export are green.
+- [ ] A second account in the same project sees none of the first account's data.
+- [ ] No connection or a paused project: a calm message, and nothing typed is lost.
+- [ ] A backup from 0.4.x restores into the online version with everything intact.
+- [ ] The release bundle and the repo contain no secret key; a new self-hoster can follow §0.4 alone.
 
 ---
 
@@ -1019,3 +1162,42 @@ Still open:
   make Home flash blank on every period change).
 - B9 (list and search panel overlapping for ~0.2 s): left unchanged until it's seen on the phone.
 
+**2026-11-26 — going online (planned as 0.5.0; spec first, code next)**
+- Owner: TangTu moves from offline to Supabase; the repo stays public for others, who each run their own
+  Supabase project and build the APK; online only for now; the owner uses it on iPhone through a web app /
+  PWA after that. Recorded in §14.9–12; §0.4, §1, §2, §3, §4, §5, §8.7, §10, §11, §12, §13, §15 rewritten.
+- Claude proposed, owner to review: `user_id` + row level security on every table; restore as one database
+  function; backups stay `format: 1` (uuid ids were proposed first, then dropped the same day for integer ids;
+  the owner then chose UUIDs, see the 0.5.0 entry); totals computed in TypeScript over fetched rows; the bell's history online with a unique
+  dedupe key per account; device markers cleared on sign-out. Owner answered §14.13–16 the same day: no reset in
+  the app, no Docker (manual checks), a development project, auto-backup off.
+- Checked in Supabase's docs on 2026-11-26: client keys are now **publishable** keys (`sb_publishable_…`; the
+  legacy `anon`/`service_role` keys are deprecated in early 2027); the Expo guide persists the session with
+  `expo-sqlite/localStorage` and reads `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`;
+  free projects are paused after 1 week of inactivity (500 MB database, 2 active projects); RLS policies use
+  `(select auth.uid()) = user_id` `to authenticated`; dashboard schema edits break `supabase db push`.
+
+**2026-11-26 — release 0.5.0 (MINOR under 0.x; MAJOR by purpose): online with Supabase**
+- Built as §0.4/§2/§3/§5/§11 now describe. Data access stays in `src/db/*Repository.ts` with the same function
+  names and an `Db` (SupabaseClient) first argument, so the screens only swapped `useSQLiteContext` for `useDb`.
+- Schema: one migration. A composite foreign key `(category_id, user_id, kind) → categories (id, user_id, kind)`
+  enforces "same account, same kind" without a trigger. Search, the grid's order, the used-categories chips and the
+  restore are SQL functions (security invoker: RLS applies), so no query is built from strings in the app.
+  `replace_all_data` maps old ids to new ones in a jsonb map (no temp table: the role may lack TEMP).
+- Pages: Supabase returns at most 1000 rows per request; `fetchAll` pages every list that can grow (a year of
+  transactions is more).
+- Errors: a call that never reached the database (no connection, paused project, 5xx) is `connection`; a dead
+  session is `auth.signedOut` (the session listener then shows sign-in); anything else stays unexpected.
+- Offline data: `legacyRepository` checks the file exists before opening (opening would create an empty one),
+  reads `Categories` and `Transactions`, and the move is the normal restore with `announce: false`.
+- Tests: the old SQLite harness is gone; 15 schema tests on PGlite (mutation-checked: switching RLS off one table
+  fails them), logic tests over in-memory rows (`__tests__/support/memory.ts`), the live check for the glue.
+- Ids: the owner chose UUIDs over whole numbers ("lebih aman dan bagus"), before anything shipped, so the one
+  migration still holds the whole schema. Honest note recorded with it: with RLS, whole-number ids leaked no data;
+  what UUIDs remove is the project-wide counter (how many rows other accounts make), guessable ids, and a
+  later need for client-made ids. Cost: `Id = string` through the app, routes check `isId` (anything else is
+  "not found", never a Postgres error), orders tie-break on `created_at`, backups `schemaVersion` 4.
+- Git ignores `supabase/*` except `supabase/migrations/` (owner: everything Supabase out of git; the migrations
+  stay because they hold no data or keys and every self-hosted project is built from them).
+- Not verified here: nothing ran against a real Supabase project (none was set up yet) or on a phone; the live
+  check skipped. The owner's first run of `npm run test:live` and a sign-in on the device are the first proof.

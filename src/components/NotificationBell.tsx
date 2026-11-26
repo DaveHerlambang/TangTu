@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback } from 'react';
 import { View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import { Touchable } from '@/components/Touchable';
 import { countUnreadActivity } from '@/db/activityRepository';
+import type { Db } from '@/db/db';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { useT } from '@/i18n';
 import { useAppStore } from '@/store/useAppStore';
@@ -20,7 +20,7 @@ export function NotificationBell() {
   const c = theme.colors;
   const { t } = useT();
   const seenAt = useAppStore((s) => s.notificationsSeenAt);
-  const query = useCallback((db: SQLiteDatabase) => countUnreadActivity(db, seenAt), [seenAt]);
+  const query = useCallback((db: Db) => countUnreadActivity(db, seenAt), [seenAt]);
   const { data: unread = 0 } = useDbQuery(query);
   const hasNew = unread > 0;
 

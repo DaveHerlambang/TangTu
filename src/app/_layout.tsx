@@ -9,16 +9,15 @@ import {
 } from '@expo-google-fonts/nunito';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
+import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { ThemedSplash } from '@/components/ThemedSplash';
 import { ToastHost } from '@/components/ToastHost';
-import { DATABASE_NAME, initializeDatabase } from '@/db/database';
 import { useActivityEvents } from '@/hooks/useActivityEvents';
 import { useHideAmountsInBackground } from '@/hooks/useAmounts';
 import { useT } from '@/i18n';
@@ -33,7 +32,7 @@ const DevToolsGear = __DEV__
     (require('@/components/DevToolsGear') as typeof import('@/components/DevToolsGear')).DevToolsGear
   : null;
 
-// Keep the native splash up while fonts and the database load; the themed splash takes over
+// Keep the native splash up while the fonts and the saved session load; the themed splash takes over
 // from it (see ThemedSplash) so there's never a blank frame in between.
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 const hideNativeSplash = () => void SplashScreen.hideAsync().catch(() => {});
@@ -43,12 +42,19 @@ function Loading() {
   return <View style={{ flex: 1, backgroundColor: '#FCF6F9' }} />;
 }
 
+/** What runs only while someone is signed in: the bell's checks need the account's data. */
+function SignedInEffects() {
+  useActivityEvents();
+  return null;
+}
+
 function ThemedStack() {
   useHideAmountsInBackground();
-  useActivityEvents();
+  const { status } = useAuth();
   const { theme } = useTheme();
   const { t } = useT();
   const c = theme.colors;
+  const signedIn = status === 'signedIn';
   // Once per launch: the greeting covers the first render, then fades to reveal the app.
   const [greeting, setGreeting] = useState(true);
   return (
@@ -69,7 +75,9 @@ function ThemedStack() {
           Every screen is singular (0.4.2, B10): a second tap while the first screen is still opening brings the
           same screen forward instead of stacking a copy — on a slow phone "+ New" opened two editors. `true` keys
           a screen by its path ([id], [date]); the editors keyed by a query parameter say which one.
+          Since 0.5.0 everything but `sign-in` needs someone signed in (Stack.Protected, §4).
         */}
+        <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ title: t('screen.settings') }} dangerouslySingular />
         <Stack.Screen name="categories" options={{ title: t('screen.categories') }} dangerouslySingular />
@@ -89,8 +97,13 @@ function ThemedStack() {
         />
         <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} dangerouslySingular />
         <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} dangerouslySingular />
+        </Stack.Protected>
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="sign-in" options={{ headerShown: false }} dangerouslySingular />
+        </Stack.Protected>
       </Stack>
-      {__DEV__ && DevToolsGear ? <DevToolsGear /> : null}
+      {signedIn ? <SignedInEffects /> : null}
+      {__DEV__ && DevToolsGear && signedIn ? <DevToolsGear /> : null}
       <ToastHost />
       {greeting && <ThemedSplash onShown={hideNativeSplash} onDone={() => setGreeting(false)} />}
     </>
@@ -117,14 +130,19 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
-        <Suspense fallback={<Loading />}>
-          <SQLiteProvider databaseName={DATABASE_NAME} onInit={initializeDatabase} useSuspense>
-            <ThemeProvider>
-              <ThemedStack />
-            </ThemeProvider>
-          </SQLiteProvider>
-        </Suspense>
+        <AuthProvider>
+          <ThemeProvider>
+            <AuthGate />
+          </ThemeProvider>
+        </AuthProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>
   );
+}
+
+/** Until the saved session is read (from the device, no network) nothing is guarded yet: show the splash colour. */
+function AuthGate() {
+  const { status } = useAuth();
+  if (status === 'loading') return <Loading />;
+  return <ThemedStack />;
 }

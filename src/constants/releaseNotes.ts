@@ -25,6 +25,50 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.5.0',
+    date: '2026-11-26',
+    en: {
+      summary: 'TangTu is online now: your data lives in your own Supabase project.',
+      sections: [
+        {
+          heading: 'new',
+          items: [
+            'Sign in with the account made for you. You stay signed in, and the sign-in screen remembers your email.',
+            'The data from the offline version on this phone can be moved to your account.',
+            'When your data can\'t be reached, TangTu says so calmly, with a Try again button.',
+          ],
+        },
+        {
+          heading: 'improved',
+          items: [
+            'Backup and restore work on your account. Backups from earlier versions still restore.',
+            'Your data is no longer stuck on one phone.',
+          ],
+        },
+      ],
+    },
+    id: {
+      summary: 'TangTu sekarang online: datamu tersimpan di project Supabase milikmu sendiri.',
+      sections: [
+        {
+          heading: 'new',
+          items: [
+            'Masuk dengan akun yang sudah dibuat untukmu. Kamu tetap masuk, dan layar Masuk mengingat email kamu.',
+            'Data dari versi offline di HP ini bisa dipindahkan ke akunmu.',
+            'Kalau datamu belum bisa dijangkau, TangTu bilang dengan tenang, lengkap dengan tombol Coba lagi.',
+          ],
+        },
+        {
+          heading: 'improved',
+          items: [
+            'Backup dan pemulihan bekerja untuk akunmu. Backup dari versi sebelumnya tetap bisa dipulihkan.',
+            'Datamu nggak lagi terkunci di satu HP.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.4.2',
     date: '2026-11-23',
     en: {

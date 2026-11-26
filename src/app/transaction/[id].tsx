@@ -10,7 +10,7 @@ export default function EditTransactionScreen() {
   return (
     <>
       <Stack.Screen options={{ title: t('screen.editTransaction') }} />
-      <TransactionForm editId={Number(id)} />
+      <TransactionForm editId={id ?? ''} />
     </>
   );
 }

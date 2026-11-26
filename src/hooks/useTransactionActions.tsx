@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
 
@@ -10,6 +9,7 @@ import { CategoryBadge } from '@/components/CategoryBadge';
 import { SwipeActions } from '@/components/SwipeActions';
 import { TransactionRow } from '@/components/TransactionRow';
 import { createTransaction, deleteTransaction, putTransaction } from '@/db/transactionsRepository';
+import { useDb } from '@/hooks/useDbQuery';
 import { useT } from '@/i18n';
 import { useAppStore } from '@/store/useAppStore';
 import { showToast } from '@/store/useToastStore';
@@ -28,7 +28,7 @@ const invalidate = () => useAppStore.getState().invalidateData();
  * Render `renderItem(row)` for each row and `sheet` once, at the end of the screen.
  */
 export function useTransactionActions() {
-  const db = useSQLiteContext();
+  const db = useDb();
   const translator = useT();
   const { t, lang } = translator;
   const { theme } = useTheme();

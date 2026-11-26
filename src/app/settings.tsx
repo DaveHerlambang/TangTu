@@ -1,11 +1,11 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useLocales } from 'expo-localization';
-import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/auth/AuthProvider';
 import { AppText } from '@/components/AppText';
 import { Card } from '@/components/Card';
 import { Icon, type IconName } from '@/components/Icon';
@@ -18,6 +18,8 @@ import { useT, type LanguagePref, type MessageKey } from '@/i18n';
 import { LANGUAGE_PREFS, resolveLanguage } from '@/i18n/core';
 import { formatDayMonth, formatDayMonthYear, formatTime } from '@/i18n/dates';
 import type { BackupFile } from '@/db/backupRepository';
+import { useDb } from '@/hooks/useDbQuery';
+import { useLegacyMove } from '@/hooks/useLegacyMove';
 import { exportBackup, getRestoreUndo, pickBackup, restoreBackup, RESTORE_UNDO_DAYS, undoRestore, type RestoreUndo } from '@/services/backup';
 import { useAppStore } from '@/store/useAppStore';
 import { showToast } from '@/store/useToastStore';
@@ -37,8 +39,9 @@ const THEME_LABEL: Record<ThemeName, MessageKey> = {
 const LANGUAGE_LABEL: Record<LanguagePref, MessageKey> = { system: 'language.system', en: 'language.en', id: 'language.id' };
 
 /**
- * Settings (§4): categories and the month's start day, theme and language, and your data — backup, restore and
- * undo restore with "Last backup" (§11), and About: What's new and the version.
+ * Settings (§4): categories and the month's start day, theme and language, your data — backup, restore and
+ * undo restore with "Last backup", moving the offline version's data (§11) — the account (signed in as, sign
+ * out; since 0.5.0), and About: What's new and the version.
  */
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -46,7 +49,7 @@ export default function SettingsScreen() {
   const translator = useT();
   const { t, tp, lang } = translator;
   const c = theme.colors;
-  const db = useSQLiteContext();
+  const db = useDb();
   const defaultTheme = useAppStore((s) => s.defaultTheme);
   const setDefaultTheme = useAppStore((s) => s.setDefaultTheme);
   const language = useAppStore((s) => s.language);
@@ -60,7 +63,9 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState<'export' | 'restore' | 'undo' | null>(null);
   // What "Undo last restore" would bring back (the data from just before the latest restore).
   const [undo, setUndo] = useState<RestoreUndo | null>(null);
-  const refreshUndo = useCallback(() => getRestoreUndo(db).then(setUndo), [db]);
+  const refreshUndo = useCallback(() => getRestoreUndo().then(setUndo), []);
+  const { email, signOut } = useAuth();
+  const legacyMove = useLegacyMove();
   useEffect(() => {
     void refreshUndo();
   }, [refreshUndo]);
@@ -107,7 +112,7 @@ export default function SettingsScreen() {
   const doRestore = async () => {
     setBusy('restore');
     try {
-      const picked = await pickBackup(db);
+      const picked = await pickBackup();
       if (!picked) return;
       const { backup, summary } = picked;
       Alert.alert(t('dialog.restore.title'), t('dialog.restore.body', { date: formatDayMonthYear(summary.exportedAt, lang), ...counts(summary) }), [
@@ -148,6 +153,14 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: () => void runUndoRestore(),
       },
+    ]);
+  };
+
+  /** Signing out asks first (§5); the data stays in the project. */
+  const doSignOut = () => {
+    Alert.alert(t('dialog.signOut.title'), t('dialog.signOut.body'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.account.signOut'), style: 'destructive', onPress: () => void signOut().catch(fail) },
     ]);
   };
 
@@ -222,6 +235,29 @@ export default function SettingsScreen() {
             />
           </>
         ) : null}
+        {legacyMove.legacy ? (
+          <>
+            <Divider />
+            <Row
+              icon="phone-portrait-outline"
+              label={t('legacy.settings')}
+              detail={t('legacy.settings.detail', { transactions: tp('count.transactions', legacyMove.legacy.transactions) })}
+              onPress={() => void legacyMove.start()}
+              busy={legacyMove.busy}
+              disabled={busy !== null || legacyMove.busy}
+            />
+          </>
+        ) : null}
+      </Section>
+
+      <Section title={t('settings.account')} footer={t('settings.account.footer')}>
+        <Row
+          icon="log-out-outline"
+          label={t('settings.account.signOut')}
+          detail={t('settings.account.signedInAs', { email: email ?? '' })}
+          onPress={doSignOut}
+          disabled={busy !== null}
+        />
       </Section>
 
       <Section title={t('settings.about')}>

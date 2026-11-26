@@ -1,7 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { BRAND } from '@/constants/brand';
 import { addActivity } from '@/db/activityRepository';
@@ -10,19 +9,20 @@ import {
   backupSummary,
   createBackup,
   hasAnyData,
-  readSchemaVersion,
   replaceAllData,
   validateBackup,
   type BackupFile,
   type BackupSummary,
 } from '@/db/backupRepository';
+import type { Db } from '@/db/db';
 import { DomainError } from '@/db/errors';
 import { useAppStore, type PersistedPrefs } from '@/store/useAppStore';
 import { sanitizePrefs } from '@/utils/sanitizePrefs';
 
 /**
- * Backup, restore and "Undo restore" (§11) — TracKar's design. The format and the SQL are in
- * `@/db/backupRepository`; this file adds files, the share sheet, the safety copy and preferences.
+ * Backup, restore and "Undo restore" (§11) — TracKar's design. The format and the data access are in
+ * `@/db/backupRepository`; this file adds files, the share sheet, the safety copy (on the device, of the
+ * account's online data) and preferences.
  * Errors are `DomainError`s with `backup.*` codes, shown by the screen in the current language.
  */
 
@@ -65,7 +65,7 @@ async function writeJson(file: File, value: unknown): Promise<void> {
  * Writes everything to a JSON file and opens the share sheet (Drive, Files…). Android can't tell
  * "saved" from "cancelled", so the caller asks afterwards and records "Last backup" only on a yes.
  */
-export async function exportBackup(db: SQLiteDatabase, dialogTitle: string): Promise<void> {
+export async function exportBackup(db: Db, dialogTitle: string): Promise<void> {
   if (!(await Sharing.isAvailableAsync())) throw new DomainError('backup.noSharing');
   const backup = await createBackup(db, currentPrefs());
   removeOldExports();
@@ -75,7 +75,7 @@ export async function exportBackup(db: SQLiteDatabase, dialogTitle: string): Pro
 }
 
 /** Lets the user pick a backup file and validates it. Null if they cancel. */
-export async function pickBackup(db: SQLiteDatabase): Promise<{ backup: BackupFile; summary: BackupSummary } | null> {
+export async function pickBackup(): Promise<{ backup: BackupFile; summary: BackupSummary } | null> {
   const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
   if (result.canceled || !result.assets[0]) return null;
   // The picker copied the file into the cache; once read, that copy of the data isn't needed.
@@ -88,12 +88,12 @@ export async function pickBackup(db: SQLiteDatabase): Promise<{ backup: BackupFi
   } finally {
     removeQuietly(picked);
   }
-  const backup = validateBackup(parsed, await readSchemaVersion(db));
+  const backup = validateBackup(parsed);
   return { backup, summary: backupSummary(backup) };
 }
 
 /** Replaces the data, then applies only known, valid preferences, and makes every screen re-read. */
-async function applyBackup(db: SQLiteDatabase, backup: BackupFile): Promise<void> {
+async function applyBackup(db: Db, backup: BackupFile): Promise<void> {
   await replaceAllData(db, backup);
   useAppStore.getState().applyPrefs(sanitizePrefs(backup.prefs));
   useAppStore.getState().setSelectedPeriod(null);
@@ -113,6 +113,12 @@ const RESTORE_UNDO_MS = RESTORE_UNDO_DAYS * 24 * 60 * 60 * 1000;
  */
 const safetyFile = () => new File(Paths.document, 'pre-restore-backup.json');
 
+/**
+ * Signing out (§5): the safety copy is the signed-out account's data, so it goes — "Undo restore" must never put
+ * one account's data into the next one signed in on this device.
+ */
+export const forgetSafetyCopy = () => removeSafetyCopy();
+
 function removeSafetyCopy() {
   try {
     const file = safetyFile();
@@ -127,7 +133,7 @@ function removeSafetyCopy() {
  * restore must not go ahead. With nothing to protect (a fresh install) there's no copy — and an older
  * one is dropped, since "undo" would otherwise wipe the restored data.
  */
-async function saveSafetyCopy(db: SQLiteDatabase): Promise<boolean> {
+async function saveSafetyCopy(db: Db): Promise<boolean> {
   if (!(await hasAnyData(db))) {
     removeSafetyCopy();
     return false;
@@ -148,7 +154,7 @@ async function saveSafetyCopy(db: SQLiteDatabase): Promise<boolean> {
  * Replaces everything with the backup — after keeping a safety copy so it can be undone — and says so
  * in the bell (whose history the restore has just cleared).
  */
-export async function restoreBackup(db: SQLiteDatabase, backup: BackupFile): Promise<void> {
+export async function restoreBackup(db: Db, backup: BackupFile, options: { announce?: boolean } = {}): Promise<void> {
   const kept = await saveSafetyCopy(db);
   try {
     await applyBackup(db, backup);
@@ -156,6 +162,10 @@ export async function restoreBackup(db: SQLiteDatabase, backup: BackupFile): Pro
     // Nothing was replaced (the restore is atomic), so there is nothing to undo either.
     removeSafetyCopy();
     throw e;
+  }
+  if (options.announce === false) {
+    useAppStore.getState().invalidateData();
+    return;
   }
   const { exportedAt, categories, transactions } = backupSummary(backup);
   await addActivity(db, 'restore', {
@@ -176,11 +186,11 @@ export interface RestoreUndo {
   transactions: number;
 }
 
-async function readSafetyCopy(db: SQLiteDatabase): Promise<BackupFile | null> {
+async function readSafetyCopy(): Promise<BackupFile | null> {
   try {
     const file = safetyFile();
     if (!file.exists) return null;
-    const backup = validateBackup(JSON.parse(await file.text()), await readSchemaVersion(db));
+    const backup = validateBackup(JSON.parse(await file.text()));
     if (Date.now() - new Date(backup.exportedAt).getTime() > RESTORE_UNDO_MS) {
       removeSafetyCopy();
       return null;
@@ -194,16 +204,16 @@ async function readSafetyCopy(db: SQLiteDatabase): Promise<BackupFile | null> {
 }
 
 /** What "Undo restore" would bring back, or null when there's nothing to undo (or it expired). */
-export async function getRestoreUndo(db: SQLiteDatabase): Promise<RestoreUndo | null> {
-  const backup = await readSafetyCopy(db);
+export async function getRestoreUndo(): Promise<RestoreUndo | null> {
+  const backup = await readSafetyCopy();
   if (!backup) return null;
   const { exportedAt, categories, transactions } = backupSummary(backup);
   return { savedAt: exportedAt, until: new Date(exportedAt.getTime() + RESTORE_UNDO_MS), categories, transactions };
 }
 
 /** Puts back the data from before the last restore. One step: afterwards there's nothing left to undo. */
-export async function undoRestore(db: SQLiteDatabase): Promise<void> {
-  const backup = await readSafetyCopy(db);
+export async function undoRestore(db: Db): Promise<void> {
+  const backup = await readSafetyCopy();
   if (!backup) throw new DomainError('backup.nothingToUndo');
   await applyBackup(db, backup);
   removeSafetyCopy();

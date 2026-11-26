@@ -1,10 +1,11 @@
 {
   "name": "tangtu",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
     "@expo/vector-icons": "^15.0.2",
+    "@supabase/supabase-js": "^2.119.2",
     "expo": "~58.0.26",
     "expo-constants": "~58.0.16",
     "expo-dev-client": "~58.0.21",
@@ -30,11 +31,13 @@
     "react-native-safe-area-context": "~5.11.1",
     "react-native-screens": "~4.30.1",
     "react-native-svg": "15.16.0",
+    "react-native-url-polyfill": "^4.0.0",
     "react-native-web": "~0.21.4",
     "react-native-worklets": "0.13.0",
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
     "@types/node": "^24.19.2",
     "@types/react": "~19.3.0",
     "babel-preset-expo": "~58.0.0",
@@ -49,7 +52,8 @@
     "ios": "expo start --ios",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit && tsc --noEmit -p __tests__",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./__tests__/support/register.mjs --test \"__tests__/*.test.ts\""
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./__tests__/support/register.mjs --test \"__tests__/*.test.ts\"",
+    "test:live": "node --env-file-if-exists=.env.test.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./__tests__/support/register.mjs --test \"__tests__/live/*.live.ts\""
   },
   "private": true
 }

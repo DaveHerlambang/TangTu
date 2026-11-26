@@ -34,6 +34,15 @@ export interface DeviceMarkers {
   lastYearRecap: number | null;
   /** ISO time the user confirmed a backup was saved (shown in Settings; never a reminder). */
   lastBackupAt: string | null;
+  /** The offline version's data on this phone was moved to an account (0.5.0, §11): it is never offered again. */
+  legacyMoved: boolean;
+  /** "Not now" on Home's offer to move it; Settings still offers it. */
+  legacyOfferDismissed: boolean;
+  /**
+   * The email of the last successful sign-in (0.5.0, owner: "remember me" = remember the email): the sign-in
+   * screen starts with it. Kept on sign-out (that's when it's needed); never the password, never in a backup.
+   */
+  lastEmail: string | null;
 }
 
 type PersistedState = PersistedPrefs & DeviceMarkers;
@@ -60,8 +69,8 @@ interface AppState extends PersistedState {
    * A category just made from the add-transaction form's "+ New" tile; the form selects it when it
    * regains focus, then clears this. Not persisted.
    */
-  pickedCategoryId: number | null;
-  setPickedCategoryId: (id: number | null) => void;
+  pickedCategoryId: string | null;
+  setPickedCategoryId: (id: string | null) => void;
   setAmountsVisible: (visible: boolean) => void;
   setDefaultTheme: (name: ThemeName) => void;
   setLanguage: (language: LanguagePref) => void;
@@ -75,12 +84,20 @@ interface AppState extends PersistedState {
   setLastRecapPeriod: (period: string) => void;
   setLastYearRecap: (year: number) => void;
   setLastBackupAt: (iso: string) => void;
+  setLegacyMoved: () => void;
+  setLastEmail: (email: string) => void;
+  dismissLegacyOffer: () => void;
+  /**
+   * Signing out (§5): the account's markers on this device go, so the next account starts clean. What isn't the
+   * account's stays: the preferences, the last announced version, the offline data's state.
+   */
+  clearAccountMarkers: () => void;
   invalidateData: () => void;
 }
 
 /**
- * UI preferences only. Domain data (categories, transactions) lives in SQLite and is read through
- * hooks, so there is a single source of truth for it.
+ * UI preferences and device markers only. Domain data (categories, transactions, the bell) lives in the
+ * account's Supabase project (since 0.5.0) and is read through hooks, so there is a single source of truth.
  */
 export const useAppStore = create<AppState>()(
   persist(
@@ -91,6 +108,9 @@ export const useAppStore = create<AppState>()(
       lastRecapPeriod: null,
       lastYearRecap: null,
       lastBackupAt: null,
+      legacyMoved: false,
+      legacyOfferDismissed: false,
+      lastEmail: null,
       dataVersion: 0,
       amountsVisible: false,
       selectedPeriod: null,
@@ -115,6 +135,18 @@ export const useAppStore = create<AppState>()(
       setLastRecapPeriod: (lastRecapPeriod) => set({ lastRecapPeriod }),
       setLastYearRecap: (lastYearRecap) => set({ lastYearRecap }),
       setLastBackupAt: (lastBackupAt) => set({ lastBackupAt }),
+      setLegacyMoved: () => set({ legacyMoved: true }),
+      setLastEmail: (lastEmail) => set({ lastEmail }),
+      dismissLegacyOffer: () => set({ legacyOfferDismissed: true }),
+      clearAccountMarkers: () =>
+        set({
+          notificationsSeenAt: null,
+          lastRecapPeriod: null,
+          lastYearRecap: null,
+          lastBackupAt: null,
+          selectedPeriod: null,
+          amountsVisible: false,
+        }),
       invalidateData: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),
     }),
     {
@@ -142,6 +174,9 @@ export const useAppStore = create<AppState>()(
           lastRecapPeriod: saved.lastRecapPeriod ?? null,
           lastYearRecap: typeof saved.lastYearRecap === 'number' ? saved.lastYearRecap : null,
           lastBackupAt: saved.lastBackupAt ?? null,
+          legacyMoved: saved.legacyMoved === true,
+          legacyOfferDismissed: saved.legacyOfferDismissed === true,
+          lastEmail: typeof saved.lastEmail === 'string' && saved.lastEmail.length <= 320 ? saved.lastEmail : null,
         };
         return { ...current, ...markers, ...sanitizePrefs(saved) };
       },
@@ -155,6 +190,9 @@ export const useAppStore = create<AppState>()(
         lastRecapPeriod,
         lastYearRecap,
         lastBackupAt,
+        legacyMoved,
+        legacyOfferDismissed,
+        lastEmail,
       }): PersistedState => ({
         defaultTheme,
         language,
@@ -165,6 +203,9 @@ export const useAppStore = create<AppState>()(
         lastRecapPeriod,
         lastYearRecap,
         lastBackupAt,
+        legacyMoved,
+        legacyOfferDismissed,
+        lastEmail,
       }),
     },
   ),

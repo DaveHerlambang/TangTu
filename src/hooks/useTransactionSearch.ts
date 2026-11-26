@@ -1,9 +1,9 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 
+import type { Db } from '@/db/db';
 import { listUsedCategories, searchTransactions } from '@/db/transactionsRepository';
 import { useDbQuery } from '@/hooks/useDbQuery';
-import type { TransactionWithCategory } from '@/types/models';
+import type { Id, TransactionWithCategory } from '@/types/models';
 import { nameMatches } from '@/utils/categoryNames';
 import { searchRange, type PickedDays, type SearchRangeChoice } from '@/utils/searchRange';
 
@@ -16,7 +16,7 @@ import { searchRange, type PickedDays, type SearchRangeChoice } from '@/utils/se
 export function useTransactionSearch(shownKey: string, startDay: number) {
   const [active, setActive] = useState(false);
   const [text, setText] = useState('');
-  const [picked, setPicked] = useState<number[]>([]);
+  const [picked, setPicked] = useState<Id[]>([]);
   const [range, setRange] = useState<SearchRangeChoice>('this');
   const [days, setDays] = useState<PickedDays | null>(null);
   const query = useDeferredValue(text.trim());
@@ -26,13 +26,13 @@ export function useTransactionSearch(shownKey: string, startDay: number) {
   const dateRange = useMemo(() => searchRange(range, shownKey, startDay, days), [range, shownKey, startDay, days]);
 
   const load = useCallback(
-    (db: SQLiteDatabase): Promise<TransactionWithCategory[] | null> =>
+    (db: Db): Promise<TransactionWithCategory[] | null> =>
       active ? searchTransactions(db, { text: query, nameMatchIds, categoryIds: picked, range: dateRange }) : Promise.resolve(null),
     [active, query, nameMatchIds, picked, dateRange],
   );
   const { data, reload } = useDbQuery(load);
 
-  const toggleCategory = useCallback((id: number) => setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])), []);
+  const toggleCategory = useCallback((id: Id) => setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])), []);
   const pickDays = useCallback((next: PickedDays) => {
     setDays(next);
     setRange('custom');

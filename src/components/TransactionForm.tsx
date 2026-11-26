@@ -1,5 +1,4 @@
 import { router, useFocusEffect } from 'expo-router';
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Alert, BackHandler, View } from 'react-native';
 import { KeyboardAwareScrollView, KeyboardController, KeyboardStickyView } from 'react-native-keyboard-controller';
@@ -36,6 +35,7 @@ import {
   putTransaction,
   updateTransaction,
 } from '@/db/transactionsRepository';
+import type { Db } from '@/db/db';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { useT } from '@/i18n';
 import { formatWeekdayDayMonth } from '@/i18n/dates';
@@ -43,7 +43,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { showToast } from '@/store/useToastStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, spacing } from '@/theme/themes';
-import { CATEGORY_KINDS, type Category, type CategoryKind, type Transaction } from '@/types/models';
+import { CATEGORY_KINDS, type Category, type CategoryKind, type Id, type Transaction } from '@/types/models';
 import { categoryName } from '@/utils/categoryNames';
 import { errorAlert } from '@/utils/errorMessage';
 import { hapticNudge, hapticSuccess, hapticTick } from '@/utils/haptics';
@@ -64,7 +64,7 @@ interface Form {
   entry: AmountEntry;
   /** Always rupiah for new entries (§14.1); a transaction from 0.1.x keeps the currency it was logged in. */
   currency: Currency;
-  categoryId: number | null;
+  categoryId: Id | null;
   /** 00:00 local of the chosen day. */
   day: Date;
   note: string;
@@ -127,14 +127,14 @@ function Caret({ color }: { color: string }) {
  * amount shakes, or the grid scrolls into view — with a short line saying what to do (owner, 0.2.0: no
  * disabled button that changes its words). Saving closes, buzzes, and offers Undo.
  */
-export function TransactionForm({ editId, initialKind }: { editId: number | null; initialKind?: CategoryKind }) {
+export function TransactionForm({ editId, initialKind }: { editId: Id | null; initialKind?: CategoryKind }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const c = theme.colors;
   const translator = useT();
   const { t, lang } = translator;
 
-  const loadExisting = useCallback((db: SQLiteDatabase) => (editId === null ? Promise.resolve(null) : getTransaction(db, editId)), [editId]);
+  const loadExisting = useCallback((db: Db) => (editId === null ? Promise.resolve(null) : getTransaction(db, editId)), [editId]);
   const existingQuery = useDbQuery(loadExisting);
   // After Delete the row is gone, and the re-read would empty the screen while it slides away: keep the
   // last copy for those frames (0.4.2, B7).
@@ -180,7 +180,7 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
     });
 
   // A category just made through "+ New" is selected when we come back (see the category editor).
-  const [pickedId, setPickedId] = useState<number | null>(null);
+  const [pickedId, setPickedId] = useState<Id | null>(null);
   useFocusEffect(
     useCallback(() => {
       const id = useAppStore.getState().pickedCategoryId;
@@ -193,7 +193,7 @@ export function TransactionForm({ editId, initialKind }: { editId: number | null
   const categoryId = pickedId ?? f?.categoryId ?? null;
 
   const kind = f?.kind ?? initialKind ?? 'EXPENSE';
-  const loadCategories = useCallback((d: SQLiteDatabase) => listCategoriesByUse(d, kind), [kind]);
+  const loadCategories = useCallback((d: Db) => listCategoriesByUse(d, kind), [kind]);
   const { data: active } = useDbQuery(loadCategories);
   const categories = useMemo(() => {
     // Right after Expense | Income is switched, the last read (of the other kind) is still here until the new

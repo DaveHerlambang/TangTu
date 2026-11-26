@@ -2,25 +2,25 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { createCategory } from '@/db/categoriesRepository';
-import { createTransaction, firstTransactionAt, listTransactions, type TransactionInput } from '@/db/transactionsRepository';
+import { type TransactionInput } from '@/db/transactionsRepository';
 import { dayRange, formatPeriodShort, localDayKey, parseDayKey, periodKey, periodRange, periodStart, periodEnd } from '@/utils/format';
 import { formatShare, rankCategories, spendByDay, summarize, trendKeys, trendPoints } from '@/utils/summary';
+import type { Id } from '@/types/models';
 
-import { testDb } from './support/db';
+import { memoryData, testId } from './support/memory';
 
 const at = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h).toISOString();
 
 async function setup() {
-  const db = await testDb();
+  const db = memoryData();
   const cat = (templateKey: 'food' | 'transport' | 'shopping', icon: 'fast-food' | 'car' | 'cart') =>
-    createCategory(db, { kind: 'EXPENSE', name: null, templateKey, icon, tint: 'peach' });
+    db.createCategory({ kind: 'EXPENSE', name: null, templateKey, icon, tint: 'peach' });
   const food = await cat('food', 'fast-food');
   const transport = await cat('transport', 'car');
   const shopping = await cat('shopping', 'cart');
-  const salary = await createCategory(db, { kind: 'INCOME', name: null, templateKey: 'salary', icon: 'cash', tint: 'mint' });
-  const add = (kind: 'EXPENSE' | 'INCOME', amount: number, occurredAt: string, categoryId: number, currency: TransactionInput['currency'] = 'IDR') =>
-    createTransaction(db, { kind, amount, currency, categoryId, note: '', occurredAt });
+  const salary = await db.createCategory({ kind: 'INCOME', name: null, templateKey: 'salary', icon: 'cash', tint: 'mint' });
+  const add = (kind: 'EXPENSE' | 'INCOME', amount: number, occurredAt: string, categoryId: Id, currency: TransactionInput['currency'] = 'IDR') =>
+    db.createTransaction({ kind, amount, currency, categoryId, note: '', occurredAt });
   return { db, food, transport, shopping, salary, add };
 }
 
@@ -31,7 +31,7 @@ describe('ranked categories', () => {
     await add('EXPENSE', 30_000, at(2026, 10, 3), transport);
     await add('EXPENSE', 20_000, at(2026, 10, 4), shopping);
     await add('EXPENSE', 9_00, at(2026, 10, 4), food, 'USD'); // not in totals
-    const rows = await listTransactions(db, periodRange('2026-10', 1));
+    const rows = await db.listTransactions(periodRange('2026-10', 1));
     const r = rankCategories(summarize(rows, 'IDR', { key: '2026-10', startDay: 1 }));
     assert.deepEqual(
       r.top.map((c) => [c.category.id, c.spent, c.share]),
@@ -87,11 +87,11 @@ describe('trend', () => {
     await add('INCOME', 900_000, at(2026, 9, 25), salary); // October period
     await add('EXPENSE', 7_000, at(2026, 10, 25), food); // November period
     const startDay = 25;
-    const first = await firstTransactionAt(db);
+    const first = await db.firstTransactionAt();
     assert.equal(first, at(2026, 9, 24));
     const keys = trendKeys('2026-11', '2026-11', periodKey(new Date(first!), startDay));
     assert.deepEqual(keys, ['2026-09', '2026-10', '2026-11']);
-    const rows = await listTransactions(db, { start: periodStart(keys[0], startDay).toISOString(), end: periodEnd(keys.at(-1)!, startDay).toISOString() });
+    const rows = await db.listTransactions({ start: periodStart(keys[0], startDay).toISOString(), end: periodEnd(keys.at(-1)!, startDay).toISOString() });
     const points = trendPoints(rows, 'IDR', keys, startDay);
     assert.deepEqual(points, [
       { key: '2026-09', spent: 10_000, income: 0 },
@@ -99,7 +99,7 @@ describe('trend', () => {
       { key: '2026-11', spent: 7_000, income: 0 },
     ]);
     for (const p of points) {
-      const s = summarize(await listTransactions(db, periodRange(p.key, startDay)), 'IDR', { key: p.key, startDay });
+      const s = summarize(await db.listTransactions(periodRange(p.key, startDay)), 'IDR', { key: p.key, startDay });
       assert.equal(p.spent, s.spent);
       assert.equal(p.income, s.income);
     }
@@ -110,9 +110,9 @@ describe('trend', () => {
     await add('EXPENSE', 1_000, at(2026, 8, 3), transport);
     await add('EXPENSE', 2_000, at(2026, 9, 3), food);
     await add('EXPENSE', 3_000, at(2026, 10, 3), food);
-    assert.equal(await firstTransactionAt(db, food), at(2026, 9, 3));
-    assert.equal(await firstTransactionAt(db, 999), null);
-    const rows = await listTransactions(db, { ...periodRange('2026-08', 1), end: periodEnd('2026-10', 1).toISOString(), categoryId: food });
+    assert.equal(await db.firstTransactionAt(food), at(2026, 9, 3));
+    assert.equal(await db.firstTransactionAt(testId(999)), null);
+    const rows = await db.listTransactions({ ...periodRange('2026-08', 1), end: periodEnd('2026-10', 1).toISOString(), categoryId: food });
     assert.deepEqual(
       trendPoints(rows, 'IDR', ['2026-09', '2026-10'], 1).map((p) => p.spent),
       [2_000, 3_000],
@@ -128,7 +128,7 @@ describe('daily spend', () => {
     await add('EXPENSE', 4_00, at(2026, 2, 1, 21), food, 'USD');
     await add('INCOME', 500_000, at(2026, 2, 2), salary);
     await add('EXPENSE', 3_000, at(2026, 2, 28, 23), food);
-    const rows = await listTransactions(db, periodRange('2026-02', 1));
+    const rows = await db.listTransactions(periodRange('2026-02', 1));
     const days = spendByDay(rows, 'IDR', { key: '2026-02', startDay: 1 });
     assert.equal(days.length, 28);
     assert.equal(days[0].key, '2026-02-01');
@@ -169,7 +169,7 @@ describe('day keys', () => {
     const mine = await add('EXPENSE', 2, at(2026, 10, 6, 0), food);
     const late = await add('EXPENSE', 3, new Date(2026, 9, 6, 23, 59).toISOString(), food);
     await add('EXPENSE', 4, at(2026, 10, 7, 0), food);
-    const rows = await listTransactions(db, dayRange(parseDayKey('2026-10-06')!));
+    const rows = await db.listTransactions(dayRange(parseDayKey('2026-10-06')!));
     assert.deepEqual(rows.map((r) => r.id), [late, mine]);
   });
 

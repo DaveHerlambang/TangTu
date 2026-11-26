@@ -16,7 +16,11 @@ export type DomainErrorCode =
   | 'backup.empty'
   | 'backup.noSharing'
   | 'backup.safetyCopy'
-  | 'backup.nothingToUndo';
+  | 'backup.nothingToUndo'
+  // Since 0.5.0 (online, §5): the data couldn't be reached; the session is gone; sign-in refused.
+  | 'connection'
+  | 'auth.signedOut'
+  | 'auth.invalid';
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;

@@ -6,7 +6,7 @@
  * default currency. Transactions in other currencies are listed per currency in `others`
  * ("not in totals") until conversion exists.
  */
-import type { Category, TransactionWithCategory } from '@/types/models';
+import type { Category, Id, TransactionWithCategory } from '@/types/models';
 import { localDayKey, periodKey, periodLastDay, periodStart, shiftPeriodKey } from '@/utils/format';
 import { CURRENCIES, type Currency } from '@/utils/money';
 
@@ -74,7 +74,7 @@ export function summarize(
   period: { key: string; startDay: number; now?: Date },
 ): PeriodSummary {
   const totals = totalsByCurrency(rows);
-  const perCategory = new Map<number, CategoryTotal>();
+  const perCategory = new Map<Id, CategoryTotal>();
   for (const r of rows) {
     if (r.kind === 'EXPENSE' && r.currency === currency) {
       const c = perCategory.get(r.category_id) ?? { category: r.category, spent: 0 };

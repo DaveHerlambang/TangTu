@@ -1,13 +1,13 @@
 import { router } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import { MenuItem, PopoverMenu, usePopoverAnchor } from '@/components/PopoverMenu';
 import { Touchable } from '@/components/Touchable';
-import { resetDatabase } from '@/db/database';
+import { deleteAllData } from '@/db/backupRepository';
 import { seedMockData } from '@/dev/mockData';
+import { useDb } from '@/hooks/useDbQuery';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -17,7 +17,7 @@ import { useTheme } from '@/theme/ThemeProvider';
  * Only load this through a `__DEV__` guard (see the root layout) so it never ships.
  */
 export function DevToolsGear() {
-  const db = useSQLiteContext();
+  const db = useDb();
   const { theme } = useTheme();
   const hidden = useAppStore((s) => s.devToolsHidden);
   const setHidden = useAppStore((s) => s.setDevToolsHidden);
@@ -43,7 +43,7 @@ export function DevToolsGear() {
 
   const confirmFill = (months: 6 | 12) => {
     close();
-    Alert.alert('Replace everything with mock data?', 'All local data is deleted first. This cannot be undone.', [
+    Alert.alert('Replace everything with mock data?', "All of the signed-in account's data is deleted first, online. Use a test account only. This cannot be undone.", [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Replace', style: 'destructive', onPress: () => void fill(months) },
     ]);
@@ -52,11 +52,11 @@ export function DevToolsGear() {
   const nuke = async () => {
     setBusy(true);
     try {
-      await resetDatabase(db);
+      await deleteAllData(db);
       // Leave any detail screen (its row may be gone) and make every list re-query.
       if (router.canDismiss()) router.dismissAll();
       invalidateData();
-      Alert.alert('Database reset', 'All local data was deleted.');
+      Alert.alert('Account emptied', "All of this account's data was deleted.");
     } catch (e) {
       Alert.alert('Reset failed', e instanceof Error ? e.message : String(e));
     } finally {
@@ -66,7 +66,7 @@ export function DevToolsGear() {
 
   const confirmNuke = () => {
     close();
-    Alert.alert('Nuke database?', 'Are you sure? This will delete all local data.', [
+    Alert.alert("Nuke this account's data?", 'Deletes every category, transaction and bell message of the signed-in account, online. Use a test account only.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete everything', style: 'destructive', onPress: nuke },
     ]);

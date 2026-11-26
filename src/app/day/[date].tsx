@@ -1,11 +1,12 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useMemo } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/AppText';
 import { Card } from '@/components/Card';
+import { LoadError } from '@/components/LoadError';
+import type { Db } from '@/db/db';
 import { listTransactions } from '@/db/transactionsRepository';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { usePeriodSettings } from '@/hooks/usePeriodSettings';
@@ -31,8 +32,8 @@ export default function DayScreen() {
   const { startDay } = usePeriodSettings();
   const currency = DEFAULT_CURRENCY;
 
-  const load = useCallback((db: SQLiteDatabase) => (day ? listTransactions(db, dayRange(day)) : Promise.resolve([])), [day]);
-  const { data, error } = useDbQuery(load);
+  const load = useCallback((db: Db) => (day ? listTransactions(db, dayRange(day)) : Promise.resolve([])), [day]);
+  const { data, error, reload } = useDbQuery(load);
   const actions = useTransactionActions();
   const rows = useMemo(() => data ?? [], [data]);
   // The one totals function, over just this day's rows.
@@ -55,11 +56,7 @@ export default function DayScreen() {
 
   const header = (
     <View style={{ gap: spacing.lg, marginBottom: spacing.lg }}>
-      {error ? (
-        <Card>
-          <AppText tone="danger">{t('home.loadError')}</AppText>
-        </Card>
-      ) : null}
+      {error ? <LoadError onRetry={() => void reload()} /> : null}
       <Card style={{ gap: 2 }}>
         <View accessible accessibilityLabel={`${t('day.spent')}: ${formatMoney(s.spent, currency)}`} style={{ gap: 2 }}>
           <AppText variant="caption" tone="muted">

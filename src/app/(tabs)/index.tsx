@@ -1,5 +1,4 @@
 import { router, useFocusEffect } from 'expo-router';
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { BackHandler, Keyboard, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -12,11 +11,14 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { CategoryBadge } from '@/components/CategoryBadge';
 import { Icon } from '@/components/Icon';
+import { LegacyOffer } from '@/components/LegacyOffer';
+import { LoadError } from '@/components/LoadError';
 import { NotificationBell } from '@/components/NotificationBell';
 import { PeriodHeader } from '@/components/PeriodHeader';
 import { SearchPanel } from '@/components/SearchPanel';
 import { Touchable } from '@/components/Touchable';
 import { BRAND } from '@/constants/brand';
+import type { Db } from '@/db/db';
 import { listTransactions, SEARCH_LIMIT } from '@/db/transactionsRepository';
 import { useAmounts, useHideAmountsOnLeave } from '@/hooks/useAmounts';
 import { useDbQuery } from '@/hooks/useDbQuery';
@@ -52,7 +54,7 @@ export default function HomeScreen() {
   const currency = DEFAULT_CURRENCY;
   useHideAmountsOnLeave();
 
-  const load = useCallback((db: SQLiteDatabase) => listTransactions(db, periodRange(key, startDay)), [key, startDay]);
+  const load = useCallback((db: Db) => listTransactions(db, periodRange(key, startDay)), [key, startDay]);
   const { data, error, reload } = useDbQuery(load);
   const rows = useMemo(() => data ?? [], [data]);
   const summary = useMemo(() => summarize(rows, currency, { key, startDay }), [rows, currency, key, startDay]);
@@ -105,10 +107,9 @@ export default function HomeScreen() {
           </>
         }
       />
+      <LegacyOffer />
       {error ? (
-        <Card>
-          <AppText tone="danger">{t('home.loadError')}</AppText>
-        </Card>
+        <LoadError onRetry={() => void reload()} />
       ) : null}
       {search.active ? (
         <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>

@@ -1,7 +1,7 @@
-import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
+import { useDb } from '@/hooks/useDbQuery';
 import { runActivityChecks } from '@/services/activityEvents';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -11,7 +11,7 @@ import { useAppStore } from '@/store/useAppStore';
  * foreground; each message is written once.
  */
 export function useActivityEvents() {
-  const db = useSQLiteContext();
+  const db = useDb();
   const invalidateData = useAppStore((s) => s.invalidateData);
 
   useEffect(() => {

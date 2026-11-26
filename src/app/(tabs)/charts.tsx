@@ -1,4 +1,3 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,8 +7,10 @@ import { Card } from '@/components/Card';
 import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import { DailySpend } from '@/components/DailySpend';
 import { Icon } from '@/components/Icon';
+import { LoadError } from '@/components/LoadError';
 import { PeriodHeader } from '@/components/PeriodHeader';
 import { SpendTrend } from '@/components/SpendTrend';
+import type { Db } from '@/db/db';
 import { listTransactions } from '@/db/transactionsRepository';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { usePeriodSettings, useSelectedPeriod } from '@/hooks/usePeriodSettings';
@@ -35,8 +36,8 @@ export default function ChartsScreen() {
   const { key, isCurrent, setKey } = useSelectedPeriod();
   const currency = DEFAULT_CURRENCY;
 
-  const load = useCallback((db: SQLiteDatabase) => listTransactions(db, periodRange(key, startDay)), [key, startDay]);
-  const { data, error } = useDbQuery(load);
+  const load = useCallback((db: Db) => listTransactions(db, periodRange(key, startDay)), [key, startDay]);
+  const { data, error, reload } = useDbQuery(load);
   const { points, current } = useSpendTrend(key);
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -52,11 +53,7 @@ export default function ChartsScreen() {
     >
       <PeriodHeader caption={t('tabs.charts')} />
 
-      {error ? (
-        <Card>
-          <AppText tone="danger">{t('home.loadError')}</AppText>
-        </Card>
-      ) : null}
+      {error ? <LoadError onRetry={() => void reload()} /> : null}
 
       {nothingYet ? (
         <Card style={styles.emptyCard}>

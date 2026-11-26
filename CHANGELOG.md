@@ -5,6 +5,55 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.5.0 — 2026-11-26
+
+TangTu goes online: the data lives in each user's own Supabase project (docs/SPEC.md §0.4, §14.9–16). A change of
+purpose — MAJOR by the rules, MINOR under `0.x` (§10.2). Old backups still restore.
+
+**Self-hosters: before installing, create a Supabase project and run `npx supabase init`, `link` and `db push`
+(README).**
+
+**NEW**
+- Sign in with an account made in your project's dashboard (no sign-up, no password reset in the app). You
+  stay signed in until you sign out, and the sign-in screen remembers the last email (never the password).
+- Settings → Account: "Signed in as …" and Sign out (asks first; this device's markers and the restore safety
+  copy are cleared, so the next account never gets the previous one's Undo restore).
+- The offline version's data on an Android phone is offered to the account once (Home card, and Settings → Your
+  data until it's moved). The old database is only read, never changed.
+- "Can't reach your data" with Try again on Home, Charts, a category and a day, instead of a red error; the last
+  data stays on screen.
+- A build without Supabase settings opens "TangTu isn't set up yet" instead of crashing.
+
+**CHANGED**
+- All data (categories, transactions, the bell) lives in Supabase Postgres with row level security; the phone
+  keeps only preferences, device markers and the session.
+- Ids are UUIDs made by the database instead of whole numbers counting up.
+- Backup and restore work on the signed-in account. The file is the same `format: 1` with `schemaVersion` 4
+  (UUID ids; the offline version refuses it as newer). A restore gives rows new ids, all or nothing, and only
+  touches this account; every older backup still restores. The safety copy for Undo restore is still on the
+  device.
+- Android auto-backup is off (`allowBackup: false`): the session must not land in a Google Drive backup (S1).
+- Dev tools: mock data is sent as one restore; "Nuke" empties the signed-in account (test accounts only).
+
+**REMOVED**
+- The on-phone SQLite tables and their migrations (`src/db/database.ts`). The old file is kept, read only.
+
+**UNDER THE HOOD**
+- `supabase/migrations/20261126000000_init.sql`: tables with UUID ids and `user_id`, a composite foreign key so a
+  transaction's category is the same account's and kind, RLS policies, and the functions `categories_by_use`,
+  `search_transactions`, `used_categories`, `replace_all_data`.
+- `@supabase/supabase-js` + `react-native-url-polyfill`; the session in `expo-sqlite/localStorage`; tokens
+  refresh only in the foreground. `src/db/db.ts` (errors to `connection` / `auth.signedOut`, paging past
+  Supabase's 1000-row cap), `src/db/supabase.ts`, `src/auth/AuthProvider.tsx`, `Stack.Protected` in the root
+  layout.
+- Git ignores everything in `supabase/` but the migrations (the CLI's `config.toml` and linked project).
+- Tests: 161. The migrations run on PGlite (Postgres in WebAssembly, dev dependency) with Supabase's auth stubbed:
+  RLS between two accounts, constraints, restore. Logic tests use in-memory rows. `npm run test:live` checks the
+  repositories against the project on two test accounts (needs `.env.test.local`; refuses an email without
+  "test" in it, since it empties both accounts).
+
+---
+
 ## 0.4.2 — 2026-11-23
 
 The add / edit screen and navigation (docs/AUDIT-0.4.0.md, release 2).

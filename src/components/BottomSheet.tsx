@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { Touchable } from '@/components/Touchable';
+import { useWideLayout } from '@/hooks/useWideLayout';
 import { useT } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/themes';
@@ -33,11 +34,15 @@ export function BottomSheet({ visible, onClose, onOpened, children }: BottomShee
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const offset = useSharedValue(height);
+  // A wide web window (0.6.2): a dialog in the middle, 440 wide, that rises a little — a sheet the width of a
+  // desktop screen read as a stretched bar. The phone and narrow windows keep the sheet from the bottom.
+  const wide = useWideLayout();
+  const start = wide ? 24 : height;
+  const offset = useSharedValue(start);
 
   useEffect(() => {
     if (!visible) {
-      offset.set(height);
+      offset.set(start);
       return;
     }
     offset.set(
@@ -63,7 +68,11 @@ export function BottomSheet({ visible, onClose, onOpened, children }: BottomShee
       {/* A Modal is its own Android window, so it needs its own keyboard provider; edge-to-edge
           windows don't resize for the keyboard, so the sheet is lifted by hand. */}
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
-        <KeyboardAvoidingView behavior="padding" automaticOffset style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <KeyboardAvoidingView
+          behavior="padding"
+          automaticOffset
+          style={wide ? { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl } : { flex: 1, justifyContent: 'flex-end' }}
+        >
           <Touchable
             onPress={onClose}
             accessibilityRole="button"
@@ -72,28 +81,39 @@ export function BottomSheet({ visible, onClose, onOpened, children }: BottomShee
           />
           <Animated.View
             style={[
-              {
-                backgroundColor: theme.colors.surface,
-                borderTopLeftRadius: 28,
-                borderTopRightRadius: 28,
-                paddingHorizontal: spacing.lg,
-                paddingTop: spacing.sm,
-                paddingBottom: insets.bottom + spacing.lg,
-                boxShadow: `0px -8px 30px ${theme.colors.shadow}`,
-              },
+              wide
+                ? {
+                    width: '100%',
+                    maxWidth: 440,
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 28,
+                    padding: spacing.xl,
+                    boxShadow: `0px 16px 40px ${theme.colors.shadow}`,
+                  }
+                : {
+                    backgroundColor: theme.colors.surface,
+                    borderTopLeftRadius: 28,
+                    borderTopRightRadius: 28,
+                    paddingHorizontal: spacing.lg,
+                    paddingTop: spacing.sm,
+                    paddingBottom: insets.bottom + spacing.lg,
+                    boxShadow: `0px -8px 30px ${theme.colors.shadow}`,
+                  },
               slide,
             ]}
           >
-            <View
-              style={{
-                alignSelf: 'center',
-                width: 36,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: theme.colors.border,
-                marginBottom: spacing.md,
-              }}
-            />
+            {wide ? null : (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  width: 36,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: theme.colors.border,
+                  marginBottom: spacing.md,
+                }}
+              />
+            )}
             {children}
           </Animated.View>
         </KeyboardAvoidingView>

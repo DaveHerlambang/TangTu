@@ -431,6 +431,9 @@ export const id = {
   'wide.entry.day': 'Hari',
   'wide.entry.hint': 'Tab pindah ke kolom berikutnya, Enter untuk menyimpan.',
   'wide.col.time': 'Jam',
+  'wide.stat.left': 'Sisa',
+  'wide.stat.over': 'Lebih dari pemasukan',
+  'wide.results': 'Hasil filter kamu',
 
   // Period start day (§3)
   'settings.startDay': 'Bulan mulai tanggal',

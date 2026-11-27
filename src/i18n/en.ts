@@ -451,6 +451,9 @@ export const en = {
   'wide.entry.day': 'Day',
   'wide.entry.hint': 'Tab moves to the next field; Enter saves.',
   'wide.col.time': 'Time',
+  'wide.stat.left': 'Left',
+  'wide.stat.over': 'More than your income',
+  'wide.results': 'What your filters found',
 
   // Period start day (§3)
   'settings.startDay': 'Month starts on',

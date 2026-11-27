@@ -38,7 +38,7 @@ const DevToolsGear = __DEV__
  * Home sits under every screen, also one opened straight from a URL (the web app reloaded on /settings, 0.6.0):
  * so there is always a way back — the iPhone's Home Screen app has no browser Back button.
  */
-export const unstable_settings = { initialRouteName: '(tabs)' };
+export const unstable_settings = { anchor: '(tabs)' };
 
 // Keep the native splash up while the fonts and the saved session load; the themed splash takes over
 // from it (see ThemedSplash) so there's never a blank frame in between.

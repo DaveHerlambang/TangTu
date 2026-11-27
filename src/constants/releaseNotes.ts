@@ -25,6 +25,44 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.6.2',
+    date: '2026-11-27',
+    en: {
+      summary: 'The laptop layout got a makeover.',
+      sections: [
+        {
+          heading: 'improved',
+          items: [
+            'Spent and Income are big and easy to see at the top.',
+            'Logging a transaction on a laptop is roomier, and the category you pick shows its icon.',
+            'Choosing a month on a wide screen opens a small window instead of a bar across the whole screen.',
+          ],
+        },
+        {
+          heading: 'fixed',
+          items: ['A new account without categories now shows straight away how to add one.'],
+        },
+      ],
+    },
+    id: {
+      summary: 'Tampilan laptop dapat penyegaran.',
+      sections: [
+        {
+          heading: 'improved',
+          items: [
+            'Pengeluaran dan Pemasukan sekarang besar dan mudah dilihat di bagian atas.',
+            'Mencatat transaksi di laptop lebih lega, dan kategori yang dipilih menampilkan ikonnya.',
+            'Memilih bulan di layar lebar membuka jendela kecil, bukan bilah selebar layar.',
+          ],
+        },
+        {
+          heading: 'fixed',
+          items: ['Akun baru yang belum punya kategori sekarang langsung diberi tahu cara menambahkannya.'],
+        },
+      ],
+    },
+  },
+  {
     version: '0.6.1',
     date: '2026-11-27',
     en: {

@@ -5,6 +5,27 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.6.2 — 2026-11-27
+
+Layout E reworked after the owner's first look at the live web app. Polish and fixes — PATCH.
+
+**CHANGED**
+- Wide Home: a summary card with Spent and Income large, then Left, Daily average and Transactions (replaces the
+  totals line); a roomier quick-entry card (Expense | Income by the title, 56 px fields, a large amount in the kind's
+  colour, the chosen category's badge in its list, a **New** button, the row wrapping in two whole groups).
+- Sheets (period, day, theme, language…) are a centred dialog on wide windows.
+- The category list uses TangTu's chevron instead of the browser's arrow.
+
+**FIXED**
+- A new account with no categories: the quick entry says how to add one straight away, not only after Save.
+- Web dev server: "Cannot manually set color scheme" (NativeWind `darkMode: 'class'`).
+- `unstable_settings.initialRouteName` (deprecated in SDK 58) → `anchor`.
+
+**UNDER THE HOOD**
+- `TextField` takes `inputStyle`. Expo 58.1 still waits for a phone-tested release.
+
+---
+
 ## 0.6.1 — 2026-11-27
 
 **FIXED**

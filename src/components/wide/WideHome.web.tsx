@@ -21,7 +21,7 @@ import { BRAND } from '@/constants/brand';
 import { listCategoriesByUse } from '@/db/categoriesRepository';
 import type { Db } from '@/db/db';
 import { NOTE_MAX_LENGTH, SEARCH_LIMIT, createTransaction, deleteTransaction, listTransactions } from '@/db/transactionsRepository';
-import { useHideAmountsOnLeave } from '@/hooks/useAmounts';
+import { useAmounts, useHideAmountsOnLeave } from '@/hooks/useAmounts';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { usePeriodSettings, useSelectedPeriod } from '@/hooks/usePeriodSettings';
 import { useTransactionActions } from '@/hooks/useTransactionActions';
@@ -61,7 +61,7 @@ export function WideHome() {
   const c = theme.colors;
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const translator = useT();
-  const { t, tp } = translator;
+  const { t } = translator;
   const { startDay, kind: periodKind } = usePeriodSettings();
   const { key, isCurrent } = useSelectedPeriod();
   useHideAmountsOnLeave();
@@ -107,15 +107,9 @@ export function WideHome() {
           {error ? <LoadError onRetry={() => void reload()} /> : null}
 
           {search.filtered ? (
-            <AppText variant="label" tone="muted" accessibilityLiveRegion="polite" style={styles.totals}>
-              {results === null
-                ? ' '
-                : [tp('count.transactions', results.length), resultsSpent > 0 ? t('search.spent', { amount: formatMoney(resultsSpent, currency) }) : null]
-                    .filter(Boolean)
-                    .join(' · ') + (results.length >= SEARCH_LIMIT ? ` · ${t('search.capped', { count: SEARCH_LIMIT })}` : '')}
-            </AppText>
+            <ResultsCard count={results?.length ?? null} spent={resultsSpent} />
           ) : (
-            <TotalsLine summary={summary} caption={caption} />
+            <SummaryCard summary={summary} caption={caption} />
           )}
 
           <QuickEntry amountRef={amountRef} />
@@ -151,81 +145,148 @@ export function WideHome() {
 
 // ---------------------------------------------------------------------------
 
-/** The summary card of the phone, as one line (§13.9): spent · income · left · count, the eye, Details. */
-function TotalsLine({ summary: s, caption }: { summary: PeriodSummary; caption: string }) {
+/** One figure of the summary: a small label over the value. `big` = Spent and Income. */
+function Stat({ label, big, children }: { label: string; big?: boolean; children: React.ReactNode }) {
+  return (
+    <View style={{ gap: 2, minWidth: big ? 150 : 0 }}>
+      <AppText variant="caption" tone="muted" numberOfLines={1}>
+        {label}
+      </AppText>
+      {children}
+    </View>
+  );
+}
+
+function Divider() {
+  const { theme } = useTheme();
+  return <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.colors.border }} />;
+}
+
+/** The size of the two headline figures on a wide window (bigger than the phone card's `title`, owner 0.6.2). */
+const BIG = { fontSize: 30, lineHeight: 38 } as const;
+
+/**
+ * The phone's summary card, laid out wide (0.6.2, owner: the figures must catch the eye): Spent and Income large,
+ * side by side; then Left (only with income, calm when over), Daily average and Transactions. The eye and Details
+ * on the top right, as on the phone.
+ */
+function SummaryCard({ summary: s, caption }: { summary: PeriodSummary; caption: string }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { t, tp } = useT();
-  const dot = (
-    <AppText variant="label" tone="muted">
-      ·
-    </AppText>
-  );
+  const { spoken } = useAmounts();
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: spacing.sm, rowGap: spacing.xs }}>
-      <AppText variant="label" tone="muted">
-        {caption}
-      </AppText>
-      {dot}
-      <AppText variant="label" tone="muted">
-        {t('home.summary.spent')}
-      </AppText>
-      <AmountText variant="heading" tone="accent">
-        {(f) => f(s.spent, s.currency)}
-      </AmountText>
-      {dot}
-      <AppText variant="label" tone="muted">
-        {t('home.summary.income')}
-      </AppText>
-      <AmountText variant="heading" tone={s.income > 0 ? 'success' : 'muted'}>
-        {(f) => f(s.income, s.currency)}
-      </AmountText>
-      {s.income > 0 ? (
-        <>
-          {dot}
-          <AmountText variant="label" tone="muted">
-            {(f) => (s.left >= 0 ? t('home.summary.left', { amount: f(s.left, s.currency) }) : t('home.summary.over', { amount: f(-s.left, s.currency) }))}
-          </AmountText>
-        </>
-      ) : null}
-      {dot}
-      <AppText variant="label" tone="muted">
-        {tp('count.transactions', s.count)}
-      </AppText>
-      <View style={{ flex: 1 }} />
-      <AmountsToggle variant="pill" />
-      <Touchable
-        onPress={() => router.navigate('/charts')}
-        accessibilityRole="button"
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 2,
-          minHeight: 22,
-          paddingHorizontal: spacing.sm,
-          borderRadius: radius.pill,
-          backgroundColor: c.track,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        <AppText variant="caption" style={{ color: c.primaryText }}>
-          {t('home.details')}
+    <Card style={{ gap: spacing.lg, padding: spacing.xl }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <AppText variant="label" tone="muted" style={{ flex: 1 }}>
+          {caption}
         </AppText>
-        <Icon name="chevron-forward" size={12} color={c.primaryText} />
-      </Touchable>
-    </View>
+        <AmountsToggle variant="pill" />
+        <Touchable
+          onPress={() => router.navigate('/charts')}
+          accessibilityRole="button"
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 2,
+            minHeight: 22,
+            paddingHorizontal: spacing.sm,
+            borderRadius: radius.pill,
+            backgroundColor: c.track,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <AppText variant="caption" style={{ color: c.primaryText }}>
+            {t('home.details')}
+          </AppText>
+          <Icon name="chevron-forward" size={12} color={c.primaryText} />
+        </Touchable>
+      </View>
+      <View
+        accessible
+        accessibilityLabel={[
+          caption,
+          `${t('home.summary.spent')}: ${spoken(s.spent, s.currency)}`,
+          `${t('home.summary.income')}: ${spoken(s.income, s.currency)}`,
+          tp('count.transactions', s.count),
+        ].join('. ')}
+        style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: spacing.xl, rowGap: spacing.md }}
+      >
+        <Stat label={t('home.summary.spent')} big>
+          <AmountText variant="display" tone="accent" style={BIG} numberOfLines={1}>
+            {(f) => f(s.spent, s.currency)}
+          </AmountText>
+        </Stat>
+        <Divider />
+        <Stat label={t('home.summary.income')} big>
+          <AmountText variant="display" tone={s.income > 0 ? 'success' : 'muted'} style={BIG} numberOfLines={1}>
+            {(f) => f(s.income, s.currency)}
+          </AmountText>
+        </Stat>
+        <View style={{ flex: 1, minWidth: spacing.md }} />
+        {/* The smaller figures stay together: on a narrower window they move to the next line as one group. */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xl }}>
+          {s.income > 0 ? (
+            <Stat label={t(s.left >= 0 ? 'wide.stat.left' : 'wide.stat.over')}>
+              <AmountText variant="title" tone="muted" numberOfLines={1}>
+                {(f) => f(Math.abs(s.left), s.currency)}
+              </AmountText>
+            </Stat>
+          ) : null}
+          <Stat label={t('home.stat.average')}>
+            <AmountText variant="title" numberOfLines={1}>
+              {(f) => f(s.dailyAverage, s.currency)}
+            </AmountText>
+          </Stat>
+          <Stat label={t('home.stat.count')}>
+            <AppText variant="title">{s.count}</AppText>
+          </Stat>
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+/** While filtering: what the filters found, in the same card (spent large, as above). */
+function ResultsCard({ count, spent }: { count: number | null; spent: number }) {
+  const { t, tp } = useT();
+  return (
+    <Card style={{ gap: spacing.lg, padding: spacing.xl }} accessibilityLiveRegion="polite">
+      <AppText variant="label" tone="muted">
+        {t('wide.results')}
+      </AppText>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: spacing.xl, rowGap: spacing.md }}>
+        <Stat label={t('home.summary.spent')} big>
+          <AppText variant="display" tone="accent" style={BIG} numberOfLines={1}>
+            {count === null ? ' ' : formatMoney(spent, currency)}
+          </AppText>
+        </Stat>
+        <Divider />
+        <Stat label={t('home.stat.count')}>
+          <AppText variant="title">{count === null ? ' ' : tp('count.transactions', count)}</AppText>
+        </Stat>
+        {count !== null && count >= SEARCH_LIMIT ? (
+          <AppText variant="caption" tone="muted" style={{ alignSelf: 'center' }}>
+            {t('search.capped', { count: SEARCH_LIMIT })}
+          </AppText>
+        ) : null}
+      </View>
+    </Card>
   );
 }
 
 // ---------------------------------------------------------------------------
 
+/** The quick-entry fields are taller than the phone's (0.6.2): a roomier row reads as the main thing to do. */
+const FIELD_HEIGHT = 56;
+
 /** A plain field look for the browser's own controls (select, date), matching `TextField`. */
 function fieldStyle(theme: Theme, focused: boolean, missing = false): CSSProperties {
   const c = theme.colors;
   return {
-    height: 46,
+    height: FIELD_HEIGHT,
     boxSizing: 'border-box',
-    padding: '0 12px',
+    padding: '0 14px',
     borderRadius: radius.md,
     border: `1.5px solid ${focused || missing ? c.primary : c.border}`,
     backgroundColor: c.surface,
@@ -326,12 +387,13 @@ function QuickEntry({ amountRef }: { amountRef: React.RefObject<TextInputInstanc
   };
 
   return (
-    <Card style={{ gap: spacing.sm }}>
-      <AppText variant="label" tone="muted">
-        {t('screen.newTransaction')}
-      </AppText>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
-        <View style={{ width: 180 }}>
+    <Card style={{ gap: spacing.lg, padding: spacing.xl }}>
+      {/* Title on the left, Expense | Income on the right: the kind sets the amount's colour and the category list. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+        <AppText variant="title" style={{ flex: 1 }}>
+          {t('screen.newTransaction')}
+        </AppText>
+        <View style={{ width: 220 }}>
           <SegmentedControl
             options={CATEGORY_KINDS.map((k) => ({ value: k, label: t(`kind.${k}`) }))}
             value={kind}
@@ -342,83 +404,121 @@ function QuickEntry({ amountRef }: { amountRef: React.RefObject<TextInputInstanc
             }}
           />
         </View>
-        <TextField
-          ref={amountRef}
-          style={[{ width: 150 }, missing === 'amount' ? { borderColor: c.primary } : null]}
-          value={digits ? formatQuickAmount(amount, currency) : ''}
-          onChangeText={(v) => setDigits(v.replace(/\D/g, '').replace(/^0+/, '').slice(0, MAX_DIGITS))}
-          onSubmitEditing={() => void save()}
-          inputMode="numeric"
-          placeholder="0"
-          accessibilityLabel={t('tx.amount')}
-          leading={
-            <AppText variant="label" tone="muted">
-              {currencySymbol(currency)}
-            </AppText>
-          }
-          autoFocus
-        />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-          <select
-            ref={selectRef}
-            aria-label={t('tx.category')}
-            value={category ? String(category.id) : ''}
-            onChange={(e) => setCategoryId(e.target.value || null)}
-            onKeyDown={onEnter}
-            onFocus={() => setFocus('category')}
-            onBlur={() => setFocus(null)}
-            style={{ ...fieldStyle(theme, focus === 'category', missing === 'category'), width: 180 }}
-          >
-            <option value="" disabled>
-              {t('wide.entry.category')}
-            </option>
-            {categories.map((cat) => (
-              <option key={String(cat.id)} value={String(cat.id)}>
-                {categoryName(cat, lang)}
-              </option>
-            ))}
-          </select>
-          <Touchable
-            onPress={() => router.push({ pathname: '/category/edit', params: { kind, pick: '1' } })}
-            accessibilityRole="button"
-            accessibilityLabel={t('screen.newCategory')}
-            style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.track, opacity: pressed ? 0.7 : 1 })}
-          >
-            <Icon name="add" size={18} color={c.text} />
-          </Touchable>
+      </View>
+      {/* Two groups that wrap whole: what (amount, category) and the rest (note, day, Save). On a narrower window the
+          second group takes its own line, with the note stretching, instead of Save dropping alone. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <TextField
+            ref={amountRef}
+            style={[{ width: 230, minHeight: FIELD_HEIGHT, borderRadius: radius.md }, missing === 'amount' ? { borderColor: c.primary } : null]}
+            inputStyle={{ fontFamily: fonts.extrabold, fontSize: 24, color: amount === 0 ? c.textMuted : kind === 'INCOME' ? c.success : c.text }}
+            value={digits ? formatQuickAmount(amount, currency) : ''}
+            onChangeText={(v) => setDigits(v.replace(/\D/g, '').replace(/^0+/, '').slice(0, MAX_DIGITS))}
+            onSubmitEditing={() => void save()}
+            inputMode="numeric"
+            placeholder="0"
+            accessibilityLabel={t('tx.amount')}
+            leading={
+              <AppText variant="heading" tone="muted">
+                {currencySymbol(currency)}
+              </AppText>
+            }
+            autoFocus
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            {/* The browser's own list (keyboard: type a letter to jump), drawn without its arrow; TangTu's chevron
+              instead, and the chosen category's badge inside the field (0.6.2). */}
+            <View style={{ width: 210, justifyContent: 'center' }}>
+              <select
+                ref={selectRef}
+                aria-label={t('tx.category')}
+                value={category ? String(category.id) : ''}
+                onChange={(e) => setCategoryId(e.target.value || null)}
+                onKeyDown={onEnter}
+                onFocus={() => setFocus('category')}
+                onBlur={() => setFocus(null)}
+                style={{
+                  ...fieldStyle(theme, focus === 'category', missing === 'category'),
+                  width: '100%',
+                  paddingLeft: category ? 50 : 14,
+                  paddingRight: 36,
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none',
+                  cursor: 'pointer',
+                  color: category ? c.text : c.textMuted,
+                }}
+              >
+                <option value="" disabled style={{ backgroundColor: c.surface, color: c.textMuted }}>
+                  {t('wide.entry.category')}
+                </option>
+                {categories.map((cat) => (
+                  <option key={String(cat.id)} value={String(cat.id)} style={{ backgroundColor: c.surface, color: c.text }}>
+                    {categoryName(cat, lang)}
+                  </option>
+                ))}
+              </select>
+              {category ? (
+                <View pointerEvents="none" style={{ position: 'absolute', left: 12 }}>
+                  <CategoryBadge icon={category.icon} tint={category.tint} size={28} />
+                </View>
+              ) : null}
+              <View pointerEvents="none" style={{ position: 'absolute', right: 12 }}>
+                <Icon name="chevron-down" size={16} color={c.textMuted} />
+              </View>
+            </View>
+            <Button
+              size="sm"
+              kind="soft"
+              icon="add"
+              label={t('tx.newCategory')}
+              accessibilityLabel={t('screen.newCategory')}
+              onPress={() => router.push({ pathname: '/category/edit', params: { kind, pick: '1' } })}
+            />
+          </View>
         </View>
-        <TextField
-          style={{ flex: 1, minWidth: 140 }}
-          value={note}
-          onChangeText={setNote}
-          onSubmitEditing={() => void save()}
-          maxLength={NOTE_MAX_LENGTH}
-          placeholder={t('tx.note.placeholder')}
-          accessibilityLabel={t('tx.note')}
-        />
-        <input
-          type="date"
-          aria-label={t('wide.entry.day')}
-          value={localDayKey(day)}
-          onChange={(e) => {
-            const picked = parseDayKey(e.target.value);
-            if (picked) setDay(picked);
-          }}
-          onKeyDown={onEnter}
-          onFocus={() => setFocus('day')}
-          onBlur={() => setFocus(null)}
-          style={{ ...fieldStyle(theme, focus === 'day'), width: 150 }}
-        />
-        <Button label={t('common.save')} onPress={() => void save()} loading={busy} />
+        <View style={{ flex: 1, minWidth: 480, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <TextField
+            style={{ flex: 1, minWidth: 160, minHeight: FIELD_HEIGHT }}
+            value={note}
+            onChangeText={setNote}
+            onSubmitEditing={() => void save()}
+            maxLength={NOTE_MAX_LENGTH}
+            placeholder={t('tx.note.placeholder')}
+            accessibilityLabel={t('tx.note')}
+          />
+          <input
+            type="date"
+            aria-label={t('wide.entry.day')}
+            value={localDayKey(day)}
+            onChange={(e) => {
+              const picked = parseDayKey(e.target.value);
+              if (picked) setDay(picked);
+            }}
+            onKeyDown={onEnter}
+            onFocus={() => setFocus('day')}
+            onBlur={() => setFocus(null)}
+            style={{ ...fieldStyle(theme, focus === 'day'), width: 160 }}
+          />
+          <Button
+            label={t('common.save')}
+            icon="checkmark"
+            onPress={() => void save()}
+            loading={busy}
+            style={{ height: FIELD_HEIGHT, paddingHorizontal: spacing.xxl }}
+          />
+        </View>
       </View>
       <AppText variant="caption" tone="muted" accessibilityLiveRegion="polite">
-        {missing === 'amount'
-          ? t('tx.amount.needed')
-          : missing === 'category'
-            ? categories.length === 0 && active !== undefined
-              ? t('tx.noCategories')
-              : t('tx.category.needed')
-            : t('wide.entry.hint')}
+        {/* No categories yet (a new account starts with none, §7.3): say how to add one straight away, not only after Save. */}
+        {active !== undefined && categories.length === 0
+          ? t('tx.noCategories')
+          : missing === 'amount'
+            ? t('tx.amount.needed')
+            : missing === 'category'
+              ? t('tx.category.needed')
+              : t('wide.entry.hint')}
       </AppText>
     </Card>
   );
@@ -437,7 +537,11 @@ function DayHeader({ date, spent, income }: { date: Date; spent: number; income:
       accessible
       accessibilityRole="header"
       accessibilityLabel={
-        spent > 0 ? t('home.dayTotal', { day: label, amount: formatMoney(spent, currency) }) : income > 0 ? t('home.dayIncome', { day: label, amount: formatMoney(income, currency) }) : label
+        spent > 0
+          ? t('home.dayTotal', { day: label, amount: formatMoney(spent, currency) })
+          : income > 0
+            ? t('home.dayIncome', { day: label, amount: formatMoney(income, currency) })
+            : label
       }
       style={{
         flexDirection: 'row',
@@ -473,7 +577,14 @@ function Row({ item, actions }: { item: TransactionWithCategory; actions: Return
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => ({ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}
+      style={({ pressed }) => ({
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: pressed ? 0.6 : 1,
+      })}
     >
       <Icon name={icon} size={17} color={color} />
     </Touchable>
@@ -657,7 +768,6 @@ const makeStyles = (t: Theme) =>
     screen: { flex: 1, flexDirection: 'row', backgroundColor: t.colors.background },
     main: { padding: spacing.xl, alignItems: 'center' },
     column: { width: '100%', maxWidth: 1200, gap: spacing.lg },
-    totals: { minHeight: 24 },
     headerButton: {
       width: 36,
       height: 36,

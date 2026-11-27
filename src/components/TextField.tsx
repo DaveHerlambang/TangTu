@@ -1,5 +1,5 @@
 import { useState, type ReactNode, type Ref } from 'react';
-import { TextInput, View, type StyleProp, type TextInputInstance, type TextInputProps, type ViewStyle } from 'react-native';
+import { TextInput, View, type StyleProp, type TextInputInstance, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 
 import { MAX_FONT_SCALE } from '@/components/AppText';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -11,10 +11,12 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   /** Rendered inside the field, after the text (e.g. a clear button). */
   trailing?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Overrides for the text itself (e.g. the wide layout's big amount). */
+  inputStyle?: StyleProp<TextStyle>;
   ref?: Ref<TextInputInstance>;
 }
 
-export function TextField({ leading, trailing, style, onFocus, onBlur, ref, ...rest }: TextFieldProps) {
+export function TextField({ leading, trailing, style, inputStyle, onFocus, onBlur, ref, ...rest }: TextFieldProps) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [focused, setFocused] = useState(false);
@@ -53,7 +55,7 @@ export function TextField({ leading, trailing, style, onFocus, onBlur, ref, ...r
           setFocused(false);
           onBlur?.(e);
         }}
-        style={{ flex: 1, height: '100%', fontFamily: fonts.semibold, fontSize: 15, color: c.text, padding: 0 }}
+        style={[{ flex: 1, height: '100%', fontFamily: fonts.semibold, fontSize: 15, color: c.text, padding: 0 }, inputStyle]}
       />
       {trailing}
     </View>

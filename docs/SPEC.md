@@ -310,7 +310,9 @@ on Home (TracKar's dashboard header).
 **Wide web windows (since 0.6.0, §13.9):** from **960 px** wide the web app shows the tabs as a rail on the left,
 Home as layout E (below), and every other screen as a centred column 760 px wide. Narrower windows (the iPhone)
 and the phone app keep the phone layout. Home sits under every screen, also one opened straight from an address,
-so there is always a Back button (the Home Screen app on iPhone has no browser Back).
+so there is always a Back button (the Home Screen app on iPhone has no browser Back). Sheets (the period, a day,
+theme, language…) open as a dialog 440 px wide in the middle of the window (0.6.2, owner: a sheet the width of the
+screen looked stretched).
 
 | Route | Screen |
 |---|---|
@@ -348,12 +350,17 @@ so there is always a Back button (the Home Screen app on iPhone has no browser B
 Owner, 2026-11-26, from five proposals. Left: **Filters**, always visible — the search field, the date choices
 (the shown period, the one before, 3 periods, all time, "Pick dates…" with two day fields starting as the shown
 period) and the categories with transactions (archived dimmed); "Clear filters" once one is set. Right, in a
-column up to 1200 px: the period header with the bell and Settings; **the totals in one line** (caption ·
-Spent · Income · left/over when there is income · count, the eye, Details), or while filtering "12
-transactions · Rp 340.000 spent"; the **quick-entry row** — Expense | Income · amount (`Rp`, dot grouping, up to
-12 digits) · category (the browser's own list: most-used first; type a letter to jump) and "+" for a new one ·
-note · day (the browser's date field, today by default) · Save; **Tab** moves between them and **Enter** in any
-field saves. After saving: toast with Undo, the amount and the note empty and the cursor back in the amount;
+column up to 1200 px: the period header with the bell and Settings; the **summary card** (since 0.6.2, owner:
+the figures must catch the eye; it replaced "the totals in one line") — caption with the eye and Details,
+**Spent and Income large** (30 px) side by side, then Left (only with income; "More than your income", calm, when
+over), Daily average and Transactions, which move to the next line together on a narrower window; while
+filtering, the same card with what the filters found (spent, count). Then the **quick-entry card** (roomier
+since 0.6.2): the title with Expense | Income on its right; fields 56 px high — the amount large (24 px, in the
+kind's colour: `Rp`, dot grouping, up to 12 digits), the category (the browser's own list: most-used first; type a
+letter to jump; drawn with TangTu's chevron and the chosen category's badge inside) and **New** for a new one; then
+the note (stretching), the day (the browser's date field, today by default) and Save. The two groups wrap whole on
+a narrower window. **Tab** moves between them and **Enter** in any field saves. With no categories yet (a new
+account, §7.3) the line under the row says how to add one straight away. After saving: toast with Undo, the amount and the note empty and the cursor back in the amount;
 the kind, the category and the day stay (the next entry is often alike). Missing amount or category: that field
 gets the focus and a calm line says what to do (§4's words). Below: the **table** — grouped by day (day total on
 the right), each row time · category · note · amount, then **Again · Edit · Delete** buttons; the row opens the
@@ -1282,7 +1289,7 @@ Still open:
   happen. ESLint now refuses `Alert` from `react-native` outside `useDialogStore`.
 - Web restore: expo-document-picker never reports a cancel in a browser (its docs), which would leave Restore
   busy forever; the web twin uses its own file input with the `cancel` event and a focus fallback.
-- `unstable_settings.initialRouteName = '(tabs)'`: a screen opened straight from an address (a reload on
+- `unstable_settings.anchor = '(tabs)'` (`initialRouteName` until 0.6.2; SDK 58 calls that deprecated): a screen opened straight from an address (a reload on
   `/settings`) still has Home under it and a Back button. Signed out, an address still lands on sign-in.
 - Checked in Chrome on the web export, signed in to test account A (`admin@`): sign-in; Home at 390 px (phone
   layout) and at 1280/1440 px (layout E, light and dark, English and Indonesian); quick entry by keyboard (Tab,
@@ -1304,3 +1311,19 @@ Still open:
   `expo` 58.1.0 and five patch updates overnight (it passed 20/20 for 0.6.0 the day before). 0.6.1 changes only
   the deploy config, so it ships without the bump; `npx expo install --fix` goes into the next release, where it
   is tested on the phone. Typecheck, 172 tests, lint, the npm 10 lockfile check and the web export passed.
+
+**2026-11-27 — release 0.6.2 (PATCH): layout E reworked after the owner's first look**
+- Owner's feedback on the live web app: the spent and income figures were too small to catch the eye, the
+  quick-entry card felt small and not modern, the period sheet stretched across the screen looked bad, the category
+  list's arrow was ugly, and a new account showed no categories (by design, §7.3; the hint now says how to add one
+  straight away). Built as §4 now describes: the summary card, the roomier quick-entry card, sheets as centred
+  dialogs on wide windows, TangTu's chevron and the category badge in the list, a **New** button.
+- The web dev server threw "Cannot manually set color scheme" (NativeWind sets the scheme once its CSS arrives,
+  which `darkMode: 'media'` forbids); `tailwind.config.js` now says `darkMode: 'class'` (no `dark:` classes exist).
+  Not reproduced before the change; gone after it on `npx expo start --web`. The export never had it.
+- `unstable_settings.initialRouteName` → `anchor` (SDK 58 warned it was deprecated); a reload on `/settings` still
+  has Back, and signed out still lands on sign-in (checked on the dev server).
+- Checked in Chrome on the export at 1024, 1280, 1440 and 1866 px, light and dark: the card, the entry row wrapping
+  in two whole groups, the month dialog. Not checked: Safari, the iPhone, the phone app on a device.
+- Release check exception again (owner said "commit push merge"): `expo-doctor` still flags Expo 58.1 and five patch
+  updates; the bump waits for a release that is tested on the phone. Everything else passed.

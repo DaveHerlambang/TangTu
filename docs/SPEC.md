@@ -157,7 +157,15 @@ people they add can sign in (owner, 2026-11-26). The README carries these steps 
    same two from EAS environment variables. **Never the secret key** (`sb_secret_…`): it bypasses row level
    security and must never be in the app, the repo or a build.
 5. **Build and sign in:** `npx eas-cli@latest build -p android --profile preview`, install the APK, sign in
-   with a user from step 3. (iPhone: the web app, phase 9.)
+   with a user from step 3.
+6. **The web app (since 0.6.0; how the owner's iPhone gets TangTu):** import the repository into Vercel (a free
+   Hobby project; `vercel.json` in the repo sets the build: `npx expo export --platform web` into `dist`, every
+   path served by `index.html`). Add the same two `EXPO_PUBLIC_…` variables in the Vercel project's environment
+   variables, production branch `master`. On the iPhone: open the address in Safari → Share → **Add to Home
+   Screen**. The web app is the same app (same Supabase project, same accounts); anyone with the address sees
+   the sign-in screen and nothing else (sign-up is off, step 3; search engines are told not to index it). The
+   publishable key is in the page's JavaScript, as it is in the APK: that is what it is for, row level security
+   guards the data.
 
 ---
 
@@ -197,8 +205,20 @@ went online (§14.9–12).*
 
 ## 2. Platform & stack (TracKar's, plus Supabase)
 
-- **Target:** Android APK (each user builds their own, §0.4) and, from phase 9, a **web app installable as a
-  PWA** (the owner's iPhone, Home Screen). Native iOS only through Expo Go during development.
+- **Target:** Android APK (each user builds their own, §0.4) and, since 0.6.0 (phase 9), a **web app
+  installable as a PWA** (the owner's iPhone, Home Screen), deployed to Vercel. Native iOS only through Expo Go
+  during development.
+- **Web (since 0.6.0):** the same code through `react-native-web`, exported as a single-page app
+  (`web.output: "single"`). What differs per platform lives in a `.web.ts(x)` twin next to the phone file, with
+  the same exports (a test checks it): `src/platform/` (preference storage, the session's `localStorage`, backup
+  files), `legacyRepository` (no offline data in a browser), `components/wide/WideHome` (layout E, §4). The web
+  build carries no expo-sqlite, expo-file-system, expo-sharing or expo-document-picker. `public/` holds the
+  page (`index.html`: manifest, iPhone Home Screen tags, service worker registration), `manifest.webmanifest`,
+  the icons and `sw.js`. Dialogs go through `showAlert` (`useDialogStore`): the system dialog on the phone,
+  TangTu's own on the web, where React Native's `Alert` does nothing; ESLint refuses `Alert`.
+- **Service worker** (`public/sw.js`, hand-written, no Workbox): keeps only the site's own files — pages
+  network first (a new deploy shows on the next open), hashed files cache first. Never Supabase: the data is
+  always online (§5).
 - **Expo** managed workflow with Continuous Native Generation (never hand-edit `android/`/`ios/`),
   **Expo Router** with typed routes, **TypeScript strict**, React 19, New Architecture.
   - TracKar is on **Expo SDK 57**. Use the newest stable SDK at project start and **read the versioned
@@ -207,7 +227,7 @@ went online (§14.9–12).*
 - **Data (since 0.5.0):** **Supabase** (Postgres + Auth) is the single source of truth, through
   `@supabase/supabase-js`. On the device only: Zustand (UI preferences, device markers) persisted to
   `expo-sqlite/kv-store`, and the signed-in session in `expo-sqlite`'s `localStorage` (as in Supabase's Expo
-  guide). Set the client up from Supabase's **current** Expo guide (URL polyfill, auth storage,
+  guide); in the web app both are the browser's `localStorage` (0.6.0). Set the client up from Supabase's **current** Expo guide (URL polyfill, auth storage,
   `detectSessionInUrl: false`), never from memory.
 - **Config:** `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, from `.env` (git-ignored;
   `.env.example` is in the repo) or EAS environment variables. A build without them opens a "not set up yet"
@@ -216,7 +236,8 @@ went online (§14.9–12).*
   `react-native-gesture-handler`, `react-native-keyboard-controller` (all keyboard handling),
   `react-native-svg`, `@expo/vector-icons` (**Ionicons only**), `@expo-google-fonts/nunito`, `expo-haptics`,
   NativeWind + themed `StyleSheet`.
-- **Backup:** `expo-file-system`, `expo-sharing`, `expo-document-picker`.
+- **Backup:** `expo-file-system`, `expo-sharing`, `expo-document-picker` on the phone; the browser's share
+  sheet or a download, its file chooser and IndexedDB on the web (0.6.0, §11).
 - **Optional, only if a feature needs it:** `expo-local-authentication` (app lock).
 - **Build:** EAS — `development` (dev client), `preview` (APK, `autoIncrement` versionCode; the one installed
   on phones), `production` (AAB); `appVersionSource: "remote"`.
@@ -286,6 +307,11 @@ can go into another while the first still has its rows. Ties in an order fall ba
 Two tabs, like TracKar (Dashboard + Notes): **Home** and **Charts**. Bell and Settings buttons top-right
 on Home (TracKar's dashboard header).
 
+**Wide web windows (since 0.6.0, §13.9):** from **960 px** wide the web app shows the tabs as a rail on the left,
+Home as layout E (below), and every other screen as a centred column 760 px wide. Narrower windows (the iPhone)
+and the phone app keep the phone layout. Home sits under every screen, also one opened straight from an address,
+so there is always a Back button (the Home Screen app on iPhone has no browser Back).
+
 | Route | Screen |
 |---|---|
 | `(tabs)/index` | **Home**: `‹ October ›` period switcher, summary card, budgets row (phase 7), transactions grouped by day, FAB `+` |
@@ -317,6 +343,21 @@ on Home (TracKar's dashboard header).
   header's right. Row = category badge (§7) · category name (or the note as the headline with the category
   below — TracKar's "subject first" rule) · time · amount (expense in `text`, income in `success` with `+`).
 - Empty state: a soft card "No spending yet this month" + "Add the first one".
+
+### Home on a wide web window — layout E, "Buku kas" (0.6.0)
+Owner, 2026-11-26, from five proposals. Left: **Filters**, always visible — the search field, the date choices
+(the shown period, the one before, 3 periods, all time, "Pick dates…" with two day fields starting as the shown
+period) and the categories with transactions (archived dimmed); "Clear filters" once one is set. Right, in a
+column up to 1200 px: the period header with the bell and Settings; **the totals in one line** (caption ·
+Spent · Income · left/over when there is income · count, the eye, Details), or while filtering "12
+transactions · Rp 340.000 spent"; the **quick-entry row** — Expense | Income · amount (`Rp`, dot grouping, up to
+12 digits) · category (the browser's own list: most-used first; type a letter to jump) and "+" for a new one ·
+note · day (the browser's date field, today by default) · Save; **Tab** moves between them and **Enter** in any
+field saves. After saving: toast with Undo, the amount and the note empty and the cursor back in the amount;
+the kind, the category and the day stay (the next entry is often alike). Missing amount or category: that field
+gets the focus and a calm line says what to do (§4's words). Below: the **table** — grouped by day (day total on
+the right), each row time · category · note · amount, then **Again · Edit · Delete** buttons; the row opens the
+editor. A search runs only once a filter differs from the defaults; until then the table is the period's list.
 
 ### Add transaction (the critical path)
 Top to bottom, in the order you think it (layout since 0.2.0, owner-approved):
@@ -353,6 +394,8 @@ Top to bottom, in the order you think it (layout since 0.2.0, owner-approved):
 - **Acts immediately, offers Undo:** saving, editing, archiving.
 - **Deleting asks first, then still offers Undo** ("Delete this transaction?" → toast with Undo).
 - **Restoring a backup confirms** (replaces everything) and keeps a safety copy (§11).
+- **Every confirmation is a dialog**: the system's on the phone, TangTu's own in the web app (same words and
+  buttons; Escape or a tap outside is Cancel) — 0.6.0.
 - **Online, calmly** (since 0.5.0): reading and saving need a connection. No connection, or a paused project,
   shows "Can't reach your data" with **Try again** — never a technical message, and never an empty screen that
   looks like there is no data. A save that fails keeps the form open with everything typed and says so;
@@ -752,6 +795,10 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
   Exporting a backup in 0.4.x and restoring it in 0.5.0 works too.
   Android can't tell "saved" from "cancelled", so afterwards ask **"Did you save the backup?"**; only
   "Yes, saved" updates **"Last backup: 12 days ago"** in Settings (passive text, no reminders).
+- **In the web app (0.6.0)** the file goes to the browser's share sheet where it can share files (the iPhone:
+  Save to Files, Drive…), else it downloads; the same question follows. Restore picks the file with the
+  browser's file chooser (cancelling it frees the button). The safety copy lives in that browser's IndexedDB,
+  for the same 7 days, and goes on sign-out like on the phone.
 - **Restore** treats files as untrusted: reject non-app files, newer schemas, damaged tables, empty
   backups and (since 0.4.1) any transaction whose `amount` isn't a positive whole number or whose
   `occurred_at` isn't an ISO date — a currency other than IDR from 0.1.x is still accepted; apply only
@@ -826,7 +873,7 @@ language and announced in the bell. `CHANGELOG.md` is the developer-facing recor
    sign-out, repositories over Supabase, restore through one database function (new ids, `format: 1`), moving
    the offline version's data,
    calm no-connection states, the README's self-hosting guide (§0.4), `allowBackup: false` (§14.16).
-9. **Web app + PWA (after 8):** Expo web export deployed to Vercel, manifest + service worker, backup as a
+9. **Web app + PWA (after 8; built in 0.6.0, §16):** Expo web export deployed to Vercel, manifest + service worker, backup as a
    download / file picker on the web, checked on the owner's iPhone from the Home Screen. **Wide screens use
    layout E, "Buku kas"** (owner, 2026-11-26, from five proposals on a Claude canvas): a quick-entry row on top
    (Expense | Income · amount · category · note · day · Save, all by keyboard: Tab between fields, Enter saves
@@ -1219,3 +1266,30 @@ Still open:
   email). Not seen yet: the policy counts (3, 4, 4); and nothing was tried on a phone.
 - Left behind: the two test accounts hold the mock data (a year of it); signing in to them shows it. The owner's own
   account is untouched.
+
+**2026-11-26 — release 0.6.0 (MINOR): the web app, layout E**
+- Built as §0.4 step 6, §2 (Web), §4 (wide windows, layout E), §5 and §11 now describe. The phone app's behaviour
+  is unchanged; its code changed only where it had to be shared: `Alert.alert` → `showAlert` (still the system
+  dialog), the preference store and the backup files behind `src/platform/`, search with a `panel` mode, row
+  actions exposed by `useTransactionActions`, the toast at most 560 wide.
+- Choices made while building, for the owner to confirm or change: the wide layout starts at **960 px**; the
+  quick entry **keeps kind, category and day** after Save; the tab rail on the left; the other screens in a
+  760 px column; the iPhone status bar style `default` (dark text on a light bar, also in dark themes). The web
+  icon is the app's current icon (still Expo's template: the app icon is the owner's decision, §13.7).
+- Platform twins (`.web.ts(x)`) keep one import path for both builds; `__tests__/platform-files.test.ts` checks
+  that each twin exports the same names as its phone file and imports none of the phone-only modules.
+- `Alert` does nothing in React Native for Web: without `showAlert` the web app's deletes would neither ask nor
+  happen. ESLint now refuses `Alert` from `react-native` outside `useDialogStore`.
+- Web restore: expo-document-picker never reports a cancel in a browser (its docs), which would leave Restore
+  busy forever; the web twin uses its own file input with the `cancel` event and a focus fallback.
+- `unstable_settings.initialRouteName = '(tabs)'`: a screen opened straight from an address (a reload on
+  `/settings`) still has Home under it and a Back button. Signed out, an address still lands on sign-in.
+- Checked in Chrome on the web export, signed in to test account A (`admin@`): sign-in; Home at 390 px (phone
+  layout) and at 1280/1440 px (layout E, light and dark, English and Indonesian); quick entry by keyboard (Tab,
+  Enter saves, the cursor returns to the amount), Undo of the add; Delete through the web dialog and its Undo
+  (the row was back in 0.4 s); Settings, the form, Categories, Notifications, Charts at both widths; a reload
+  on `/settings` (Back present) and signed out (lands on sign-in); backup export (downloaded, `format` 1,
+  `schemaVersion` 4), restore of that file (dialog, 10 categories, 521 transactions), Undo restore, a cancelled
+  file chooser. Not checked: Safari, the iPhone and its Home Screen app, the share sheet path (Chrome on the
+  desktop downloads), the service worker on a real HTTPS deploy, Vercel itself (needs the owner's account),
+  and the phone app on a device (the shared changes are type-checked and the Android export builds).

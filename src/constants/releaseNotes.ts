@@ -25,6 +25,44 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.6.0',
+    date: '2026-11-26',
+    en: {
+      summary: 'TangTu now runs in a browser too, and on a laptop it becomes a ledger.',
+      sections: [
+        {
+          heading: 'new',
+          items: [
+            'Open TangTu in a browser and add it to your iPhone\'s Home Screen: it opens like an app, with the same account.',
+            'On a wide window: your filters stay on the left, the totals sit in one line, and a quick-entry row lets you log by keyboard. Tab moves between fields, Enter saves.',
+            'Every transaction in the table has Again, Edit and Delete right on its row.',
+          ],
+        },
+        {
+          heading: 'improved',
+          items: ['Backups work in the browser as well: share or download the file, and restore it from there.'],
+        },
+      ],
+    },
+    id: {
+      summary: 'TangTu sekarang juga jalan di browser, dan di laptop jadi buku kas.',
+      sections: [
+        {
+          heading: 'new',
+          items: [
+            'Buka TangTu di browser lalu tambahkan ke Layar Utama iPhone kamu: terbuka seperti aplikasi, dengan akun yang sama.',
+            'Di layar lebar: filter selalu ada di kiri, total muncul dalam satu baris, dan ada baris catat cepat lewat keyboard. Tab pindah kolom, Enter menyimpan.',
+            'Setiap transaksi di tabel punya tombol Lagi, Ubah, dan Hapus langsung di barisnya.',
+          ],
+        },
+        {
+          heading: 'improved',
+          items: ['Backup juga jalan di browser: bagikan atau unduh filenya, lalu pulihkan dari sana.'],
+        },
+      ],
+    },
+  },
+  {
     version: '0.5.0',
     date: '2026-11-26',
     en: {

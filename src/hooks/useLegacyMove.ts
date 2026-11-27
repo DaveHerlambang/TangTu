@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 
 import { hasAnyData } from '@/db/backupRepository';
 import { readLegacyData, type LegacyData } from '@/db/legacyRepository';
@@ -9,6 +8,7 @@ import { RESTORE_UNDO_DAYS, restoreBackup } from '@/services/backup';
 import { useAppStore } from '@/store/useAppStore';
 import { showToast } from '@/store/useToastStore';
 import { errorAlert } from '@/utils/errorMessage';
+import { showAlert } from '@/store/useDialogStore';
 
 /**
  * The offline version's data on this phone (§11), and moving it to the signed-in account: straight away into
@@ -43,7 +43,7 @@ export function useLegacyMove() {
         showToast({ message: t('toast.legacy.moved') });
       } catch (e) {
         const { title, message } = errorAlert(e, translator);
-        Alert.alert(title, message);
+        showAlert(title, message);
       } finally {
         setBusy(false);
       }
@@ -57,10 +57,10 @@ export function useLegacyMove() {
       if (!(await hasAnyData(db))) return void (await run(legacy));
     } catch (e) {
       const { title, message } = errorAlert(e, translator);
-      Alert.alert(title, message);
+      showAlert(title, message);
       return;
     }
-    Alert.alert(
+    showAlert(
       t('dialog.legacy.replace.title'),
       t('dialog.legacy.replace.body', { transactions: tp('count.transactions', legacy.transactions), days: RESTORE_UNDO_DAYS }),
       [

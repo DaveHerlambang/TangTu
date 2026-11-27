@@ -29,8 +29,8 @@ const TEXT_PROPS = new Set([
   'actionLabel',
 ]);
 
-/** Calls whose string arguments are shown: Alert.alert(title, message, [{ text }]), showToast({ message }). */
-const TEXT_CALLS = new Set(['alert', 'showToast']);
+/** Calls whose string arguments are shown: showAlert(title, message, [{ text }]) (Alert.alert before 0.6.0), showToast({ message }). */
+const TEXT_CALLS = new Set(['alert', 'showAlert', 'showToast']);
 
 const hasLetters = (s: string) => /\p{L}/u.test(s);
 const isPlainString = (n: ts.Node): n is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
@@ -108,10 +108,11 @@ test('the checker catches what it should, and nothing else', () => {
     const B = () => <Button label={t('common.save')} style={{ color: 'red' }} hitSlop={8} />;
     const C = () => <Row title={\`Total \${n}\`} detail={\`\${a} · \${b}\`} />;
     Alert.alert('Oops', t('x'), [{ text: 'OK', style: 'cancel' }]);
+    showAlert('Sure?', t('x'), [{ text: t('common.ok') }]);
   `;
   const found = findLiterals('sample.tsx', sample);
   assert.deepEqual(
     found.map((f) => f.replace(/^sample\.tsx:\d+ /, '')),
-    ['accessibilityLabel="Close"', 'JSX text "Hello"', 'title={`Total ${n}`}', 'alert("Oops")', 'alert("OK")'],
+    ['accessibilityLabel="Close"', 'JSX text "Hello"', 'title={`Total ${n}`}', 'alert("Oops")', 'alert("OK")', 'showAlert("Sure?")'],
   );
 });

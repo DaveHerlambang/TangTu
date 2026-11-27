@@ -37,12 +37,15 @@ export function ToastHost() {
       entering={SlideInUp.duration(220)}
       exiting={FadeOutUp.duration(180)}
       pointerEvents="box-none"
-      style={{ position: 'absolute', top: insets.top + spacing.sm, left: spacing.lg, right: spacing.lg, zIndex: 1000 }}
+      // Centred and at most 560 wide: on a wide web window (0.6.0) a full-width bar would stretch across the screen.
+      style={{ position: 'absolute', top: insets.top + spacing.sm, left: spacing.lg, right: spacing.lg, zIndex: 1000, alignItems: 'center' }}
     >
       <View
         accessibilityRole="alert"
         accessibilityLiveRegion="polite"
         style={{
+          width: '100%',
+          maxWidth: 560,
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.md,

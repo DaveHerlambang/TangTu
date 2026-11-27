@@ -12,8 +12,12 @@ import { searchRange, type PickedDays, type SearchRangeChoice } from '@/utils/se
  * (note, or a category name in either language), the category chips and the date chip — starting on the
  * period Home shows, so the first results are the list you were looking at. Live: the query follows the
  * text a beat behind so typing stays smooth.
+ *
+ * `panel` (the wide web layout, 0.6.0, §13.9): the filters are always on screen, so there is no on/off; a search
+ * runs only once a filter differs from the defaults (text, a category, a date other than the shown period) —
+ * until then the screen shows its own period list and nothing is read twice.
  */
-export function useTransactionSearch(shownKey: string, startDay: number) {
+export function useTransactionSearch(shownKey: string, startDay: number, { panel = false }: { panel?: boolean } = {}) {
   const [active, setActive] = useState(false);
   const [text, setText] = useState('');
   const [picked, setPicked] = useState<Id[]>([]);
@@ -24,11 +28,13 @@ export function useTransactionSearch(shownKey: string, startDay: number) {
   const { data: categories = [] } = useDbQuery(listUsedCategories);
   const nameMatchIds = useMemo(() => (query ? categories.filter((cat) => nameMatches(cat, query)).map((cat) => cat.id) : []), [categories, query]);
   const dateRange = useMemo(() => searchRange(range, shownKey, startDay, days), [range, shownKey, startDay, days]);
+  const filtered = query !== '' || picked.length > 0 || range !== 'this';
+  const running = panel ? filtered : active;
 
   const load = useCallback(
     (db: Db): Promise<TransactionWithCategory[] | null> =>
-      active ? searchTransactions(db, { text: query, nameMatchIds, categoryIds: picked, range: dateRange }) : Promise.resolve(null),
-    [active, query, nameMatchIds, picked, dateRange],
+      running ? searchTransactions(db, { text: query, nameMatchIds, categoryIds: picked, range: dateRange }) : Promise.resolve(null),
+    [running, query, nameMatchIds, picked, dateRange],
   );
   const { data, reload } = useDbQuery(load);
 
@@ -37,19 +43,26 @@ export function useTransactionSearch(shownKey: string, startDay: number) {
     setDays(next);
     setRange('custom');
   }, []);
-  /** Back to the normal Home: everything reset, so the next search starts fresh. */
-  const exit = useCallback(() => {
-    setActive(false);
+  /** Every filter back to its default. */
+  const reset = useCallback(() => {
     setText('');
     setPicked([]);
     setRange('this');
     setDays(null);
   }, []);
+  /** Back to the normal Home: everything reset, so the next search starts fresh. */
+  const exit = useCallback(() => {
+    setActive(false);
+    reset();
+  }, [reset]);
 
   return {
     active,
     start: useCallback(() => setActive(true), []),
     exit,
+    reset,
+    /** A filter differs from the defaults (what `panel` searches on). */
+    filtered,
     text,
     setText,
     categories,
@@ -60,7 +73,7 @@ export function useTransactionSearch(shownKey: string, startDay: number) {
     days,
     pickDays,
     /** Null until the first results arrive (or while search is off). */
-    results: active ? (data ?? null) : null,
+    results: running ? (data ?? null) : null,
     reload,
   };
 }

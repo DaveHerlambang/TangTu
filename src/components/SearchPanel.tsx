@@ -16,7 +16,7 @@ import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
 import { radius, spacing, type Theme } from '@/theme/themes';
 import { categoryName } from '@/utils/categoryNames';
 import { formatPeriodName, shiftPeriodKey } from '@/utils/format';
-import { SEARCH_RANGE_CHOICES, type SearchRangeChoice } from '@/utils/searchRange';
+import { SEARCH_RANGE_CHOICES, type PickedDays, type SearchRangeChoice } from '@/utils/searchRange';
 
 /**
  * Search on Home (§4, §5): the field sits between the summary and the list. Touching it turns search on
@@ -28,30 +28,9 @@ export function SearchPanel({ search }: { search: TransactionSearch }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { t, lang } = useT();
-  const { kind } = usePeriodSettings();
-  const { key, isCurrent } = useSelectedPeriod();
+  const rangeLabel = useSearchRangeLabel(search.days);
   // Picking days: first "from", then "to".
   const [step, setStep] = useState<{ from: Date | null } | null>(null);
-
-  const rangeLabel = (choice: SearchRangeChoice): string => {
-    switch (choice) {
-      case 'this':
-        return isCurrent ? t(kind === 'month' ? 'search.range.this.month' : 'search.range.this.period') : formatPeriodName(key, lang);
-      case 'last':
-        return isCurrent
-          ? t(kind === 'month' ? 'search.range.last.month' : 'search.range.last.period')
-          : formatPeriodName(shiftPeriodKey(key, -1), lang);
-      case 'three':
-        return t(kind === 'month' ? 'search.range.three.month' : 'search.range.three.period');
-      case 'all':
-        return t('search.range.all');
-      case 'custom': {
-        if (!search.days) return t('search.range.pick');
-        const [a, b] = [search.days.from, search.days.to].sort((x, y) => x.getTime() - y.getTime());
-        return `${formatDayMonth(a, lang)} – ${formatDayMonth(b, lang)}`;
-      }
-    }
-  };
 
   const chip = (opts: { key: string; on: boolean; label: string; onPress: () => void; role: 'radio' | 'checkbox'; leading?: ReactNode }) => (
     <Touchable
@@ -169,6 +148,32 @@ export function SearchPanel({ search }: { search: TransactionSearch }) {
       )}
     </View>
   );
+}
+
+/** The label of each date choice: the shown period by name when it isn't the current one (also used by the wide layout). */
+export function useSearchRangeLabel(days: PickedDays | null) {
+  const { t, lang } = useT();
+  const { kind } = usePeriodSettings();
+  const { key, isCurrent } = useSelectedPeriod();
+  return (choice: SearchRangeChoice): string => {
+    switch (choice) {
+      case 'this':
+        return isCurrent ? t(kind === 'month' ? 'search.range.this.month' : 'search.range.this.period') : formatPeriodName(key, lang);
+      case 'last':
+        return isCurrent
+          ? t(kind === 'month' ? 'search.range.last.month' : 'search.range.last.period')
+          : formatPeriodName(shiftPeriodKey(key, -1), lang);
+      case 'three':
+        return t(kind === 'month' ? 'search.range.three.month' : 'search.range.three.period');
+      case 'all':
+        return t('search.range.all');
+      case 'custom': {
+        if (!days) return t('search.range.pick');
+        const [a, b] = [days.from, days.to].sort((x, y) => x.getTime() - y.getTime());
+        return `${formatDayMonth(a, lang)} – ${formatDayMonth(b, lang)}`;
+      }
+    }
+  };
 }
 
 const makeStyles = (t: Theme) =>

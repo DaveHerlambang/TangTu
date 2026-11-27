@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     // Local scope: this device only; other devices stay signed in.
     await supabase.auth.signOut({ scope: 'local' });
-    forgetSafetyCopy();
+    await forgetSafetyCopy();
     useAppStore.getState().clearAccountMarkers();
     useAppStore.getState().invalidateData();
   }, []);

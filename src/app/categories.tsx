@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/AppText';
@@ -22,6 +22,7 @@ import { radius, spacing } from '@/theme/themes';
 import { CATEGORY_KINDS, type Category, type CategoryKind } from '@/types/models';
 import { categoryName } from '@/utils/categoryNames';
 import { errorAlert } from '@/utils/errorMessage';
+import { showAlert } from '@/store/useDialogStore';
 
 const ROW_HEIGHT = 60;
 
@@ -48,7 +49,7 @@ export default function CategoriesScreen() {
 
   const fail = (e: unknown) => {
     const { title, message } = errorAlert(e, translator);
-    Alert.alert(title, message);
+    showAlert(title, message);
   };
 
   const reorder = async (next: Category[]) => {

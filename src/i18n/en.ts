@@ -19,6 +19,7 @@ export const en = {
   'common.again': 'Again',
   'common.cancel': 'Cancel',
   'common.close': 'Close',
+  'common.ok': 'OK',
   'common.closeMenu': 'Close menu',
   'common.optional': 'optional',
   'common.today': 'Today',
@@ -439,6 +440,17 @@ export const en = {
   'search.range.pick': 'Pick dates…',
   'search.range.from': 'From which day?',
   'search.range.to': 'Until which day?',
+  // The wide web layout, "Buku kas" (0.6.0, §13.9).
+  'wide.filters': 'Filters',
+  'wide.filters.date': 'Date',
+  'wide.filters.categories': 'Categories',
+  'wide.filters.clear': 'Clear filters',
+  'wide.filters.from': 'From',
+  'wide.filters.to': 'Until',
+  'wide.entry.category': 'Choose a category',
+  'wide.entry.day': 'Day',
+  'wide.entry.hint': 'Tab moves to the next field; Enter saves.',
+  'wide.col.time': 'Time',
 
   // Period start day (§3)
   'settings.startDay': 'Month starts on',

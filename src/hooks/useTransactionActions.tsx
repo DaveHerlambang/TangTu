@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
 import { BottomSheet } from '@/components/BottomSheet';
@@ -19,13 +19,15 @@ import type { TransactionWithCategory } from '@/types/models';
 import { categoryName } from '@/utils/categoryNames';
 import { errorAlert } from '@/utils/errorMessage';
 import { formatMoney } from '@/utils/money';
+import { showAlert } from '@/store/useDialogStore';
 
 const invalidate = () => useAppStore.getState().invalidateData();
 
 /**
  * What every transaction list does with its rows (§5): tap to edit; swipe left for Again · Edit ·
  * Delete; long-press for the same actions in a sheet. Used by Home, the category and the day screens.
- * Render `renderItem(row)` for each row and `sheet` once, at the end of the screen.
+ * Render `renderItem(row)` for each row and `sheet` once, at the end of the screen. The wide web layout (0.6.0)
+ * uses `again`, `edit` and `confirmDelete` directly from its table rows.
  */
 export function useTransactionActions() {
   const db = useDb();
@@ -37,7 +39,7 @@ export function useTransactionActions() {
 
   const fail = (e: unknown) => {
     const { title, message } = errorAlert(e, translator);
-    Alert.alert(title, message);
+    showAlert(title, message);
   };
 
   const label = (r: TransactionWithCategory) => ({ amount: formatMoney(r.amount, r.currency), category: categoryName(r.category, lang) });
@@ -69,7 +71,7 @@ export function useTransactionActions() {
 
   /** Deleting asks first, then still offers Undo (§5). */
   const confirmDelete = (r: TransactionWithCategory) => {
-    Alert.alert(t('dialog.deleteTx.title'), t('dialog.deleteTx.body', label(r)), [
+    showAlert(t('dialog.deleteTx.title'), t('dialog.deleteTx.body', label(r)), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -163,5 +165,5 @@ export function useTransactionActions() {
     </BottomSheet>
   ) : null;
 
-  return { renderItem, sheet };
+  return { renderItem, sheet, again, confirmDelete, edit };
 }

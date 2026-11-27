@@ -1,10 +1,10 @@
 /**
  * The one Supabase client (§2), made from the build's settings (§0.4): `EXPO_PUBLIC_SUPABASE_URL` and the
  * **publishable** key. Set up as in Supabase's Expo guide: the URL polyfill, and the session kept in
- * expo-sqlite's `localStorage` on the device. App only — repositories take the client as a parameter (`Db`).
+ * `localStorage` (expo-sqlite's on the phone, the browser's on the web). App only — repositories take the client as a parameter (`Db`).
  */
 import 'react-native-url-polyfill/auto';
-import 'expo-sqlite/localStorage/install';
+import '@/platform/installLocalStorage';
 
 import { createClient } from '@supabase/supabase-js';
 

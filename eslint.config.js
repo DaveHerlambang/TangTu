@@ -20,6 +20,11 @@ module.exports = defineConfig([
               importNames: ["Pressable"],
               message: "Use Touchable from '@/components/Touchable' — NativeWind drops Pressable style callbacks.",
             },
+            {
+              name: "react-native",
+              importNames: ["Alert"],
+              message: "Use showAlert from '@/store/useDialogStore' — Alert does nothing on the web (0.6.0).",
+            },
           ],
         },
       ],

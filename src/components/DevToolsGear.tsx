@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import { MenuItem, PopoverMenu, usePopoverAnchor } from '@/components/PopoverMenu';
@@ -10,6 +10,7 @@ import { seedMockData } from '@/dev/mockData';
 import { useDb } from '@/hooks/useDbQuery';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/theme/ThemeProvider';
+import { showAlert } from '@/store/useDialogStore';
 
 /**
  * Developer tools: a floating gear (left edge) with a context menu. English only: they never ship,
@@ -33,9 +34,9 @@ export function DevToolsGear() {
       if (router.canDismiss()) router.dismissAll();
       useAppStore.getState().setSelectedPeriod(null);
       invalidateData();
-      Alert.alert('Mock data added', `${s.periods} periods: ${s.categories} categories, ${s.transactions} transactions.`);
+      showAlert('Mock data added', `${s.periods} periods: ${s.categories} categories, ${s.transactions} transactions.`);
     } catch (e) {
-      Alert.alert('Mock data failed', e instanceof Error ? e.message : String(e));
+      showAlert('Mock data failed', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -43,7 +44,7 @@ export function DevToolsGear() {
 
   const confirmFill = (months: 6 | 12) => {
     close();
-    Alert.alert('Replace everything with mock data?', "All of the signed-in account's data is deleted first, online. Use a test account only. This cannot be undone.", [
+    showAlert('Replace everything with mock data?', "All of the signed-in account's data is deleted first, online. Use a test account only. This cannot be undone.", [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Replace', style: 'destructive', onPress: () => void fill(months) },
     ]);
@@ -56,9 +57,9 @@ export function DevToolsGear() {
       // Leave any detail screen (its row may be gone) and make every list re-query.
       if (router.canDismiss()) router.dismissAll();
       invalidateData();
-      Alert.alert('Account emptied', "All of this account's data was deleted.");
+      showAlert('Account emptied', "All of this account's data was deleted.");
     } catch (e) {
-      Alert.alert('Reset failed', e instanceof Error ? e.message : String(e));
+      showAlert('Reset failed', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -66,7 +67,7 @@ export function DevToolsGear() {
 
   const confirmNuke = () => {
     close();
-    Alert.alert("Nuke this account's data?", 'Deletes every category, transaction and bell message of the signed-in account, online. Use a test account only.', [
+    showAlert("Nuke this account's data?", 'Deletes every category, transaction and bell message of the signed-in account, online. Use a test account only.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete everything', style: 'destructive', onPress: nuke },
     ]);

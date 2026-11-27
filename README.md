@@ -41,6 +41,12 @@ You need a computer with Node.js, a free [Supabase](https://supabase.com) accoun
    npx eas-cli@latest build -p android --profile preview
    ```
    Install the APK and sign in with a user from step 3.
+6. **The web app (for iPhone, or any browser).** Import this repository (or your fork) into
+   [Vercel](https://vercel.com) as a new project; `vercel.json` already sets the build. In the Vercel project's
+   Settings → Environment Variables add the same two values (`EXPO_PUBLIC_SUPABASE_URL`,
+   `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`), set the production branch to `master`, and deploy. On an iPhone, open
+   the address in Safari → Share → **Add to Home Screen**: TangTu opens like an app. On a laptop, a wide window
+   shows a ledger layout with a keyboard quick-entry row (Tab between fields, Enter saves).
 
 **Coming from the offline version (0.4.x)?** Install 0.5.0 over it and sign in: the app finds the data on the
 phone and offers to move it to your account (the copy on the phone is left as it was). Exporting a backup in
@@ -57,7 +63,8 @@ to your fork with the GitHub integration on) before installing it.
 ## Developing
 
 ```bash
-npx expo start                      # dev client; add --go for Expo Go
+npx expo start                      # dev client; add --go for Expo Go; press w for the web app
+npx expo export --platform web      # the web app into dist/ (what Vercel runs)
 npm run typecheck && npm test && npx expo lint
 npm run test:live                   # optional: the data layer against your project, on two TEST accounts (see the file's header)
 ```

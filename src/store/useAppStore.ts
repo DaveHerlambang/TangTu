@@ -1,7 +1,7 @@
-import Storage from 'expo-sqlite/kv-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { kvStorage } from '@/platform/kvStorage';
 import { sanitizePrefs } from '@/utils/sanitizePrefs';
 import type { LanguagePref } from '@/i18n/core';
 import type { ThemeName } from '@/theme/themes';
@@ -151,15 +151,9 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tangtu-ui',
-      // expo-sqlite's key-value store. Using the sync API makes zustand hydrate before the
-      // first render, so the saved theme shows immediately instead of flashing the default.
-      storage: createJSONStorage(() => ({
-        getItem: (key) => Storage.getItemSync(key),
-        setItem: (key, value) => Storage.setItemSync(key, value),
-        removeItem: (key) => {
-          Storage.removeItemSync(key);
-        },
-      })),
+      // Synchronous on both platforms (expo-sqlite's key-value store; localStorage on the web), so zustand
+      // hydrates before the first render and the saved theme shows immediately instead of flashing the default.
+      storage: createJSONStorage(() => kvStorage),
       // Bump `version` and handle the old shape in `migrate` whenever a persisted key is renamed
       // or its meaning changes. New keys need no bump: missing keys take their defaults.
       version: 1,

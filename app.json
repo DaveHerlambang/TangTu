@@ -2,7 +2,7 @@
   "expo": {
     "name": "TangTu",
     "slug": "tangtu",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tangtu",
@@ -30,7 +30,13 @@
     },
     "web": {
       "favicon": "./assets/images/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "single",
+      "name": "TangTu",
+      "shortName": "TangTu",
+      "lang": "en",
+      "backgroundColor": "#FCF6F9",
+      "themeColor": "#FCF6F9"
     },
     "plugins": [
       "expo-router",

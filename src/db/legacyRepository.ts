@@ -5,7 +5,6 @@
  */
 import { File, Paths } from 'expo-file-system';
 import { openDatabaseAsync } from 'expo-sqlite';
-import { Platform } from 'react-native';
 
 import { makeBackup, type BackupFile, type BackupRow } from '@/db/backupRepository';
 
@@ -22,9 +21,8 @@ export interface LegacyData {
 /** expo-sqlite keeps databases in `<documents>/SQLite/`. */
 const legacyFile = () => new File(Paths.document, 'SQLite', LEGACY_DATABASE_NAME);
 
-/** The offline data on this phone, or null when there is none (a new install, the web, an empty database). */
+/** The offline data on this phone, or null when there is none (a new install, an empty database). The web build: `.web.ts`. */
 export async function readLegacyData(): Promise<LegacyData | null> {
-  if (Platform.OS === 'web') return null;
   try {
     // Checked first: opening a database that isn't there would create an empty one.
     if (!legacyFile().exists) return null;

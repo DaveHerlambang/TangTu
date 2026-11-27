@@ -54,3 +54,6 @@ supabase/*
 docs/IMPROVEMENT_PLAN.md
 docs/HANDOFF.md
 docs/AUDIT-*.md
+
+# Vercel CLI (0.6.0)
+.vercel/

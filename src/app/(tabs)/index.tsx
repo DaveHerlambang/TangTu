@@ -17,6 +17,7 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { PeriodHeader } from '@/components/PeriodHeader';
 import { SearchPanel } from '@/components/SearchPanel';
 import { Touchable } from '@/components/Touchable';
+import { WideHome } from '@/components/wide/WideHome';
 import { BRAND } from '@/constants/brand';
 import type { Db } from '@/db/db';
 import { listTransactions, SEARCH_LIMIT } from '@/db/transactionsRepository';
@@ -25,6 +26,7 @@ import { useDbQuery } from '@/hooks/useDbQuery';
 import { useHideOnScroll } from '@/hooks/useHideOnScroll';
 import { useTransactionActions } from '@/hooks/useTransactionActions';
 import { useTransactionSearch } from '@/hooks/useTransactionSearch';
+import { useWideLayout } from '@/hooks/useWideLayout';
 import { usePeriodSettings, useSelectedPeriod } from '@/hooks/usePeriodSettings';
 import { useT } from '@/i18n';
 import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
@@ -43,6 +45,11 @@ import { groupByDay, summarize, totalsByCurrency, type PeriodSummary } from '@/u
  * Cancel or Back ends it. Swipe a row left for Again · Edit · Delete; long-press for the same in a sheet.
  */
 export default function HomeScreen() {
+  // Layout E, "Buku kas", on a wide web window (0.6.0, §13.9); the phone layout everywhere else.
+  return useWideLayout() ? <WideHome /> : <PhoneHome />;
+}
+
+function PhoneHome() {
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
   const { theme } = useTheme();

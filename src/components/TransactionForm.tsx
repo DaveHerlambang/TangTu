@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, BackHandler, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, View } from 'react-native';
 import { KeyboardAwareScrollView, KeyboardController, KeyboardStickyView } from 'react-native-keyboard-controller';
 import Animated, {
   cancelAnimation,
@@ -58,6 +58,7 @@ import {
   type AmountEntry,
   type Currency,
 } from '@/utils/money';
+import { showAlert } from '@/store/useDialogStore';
 
 interface Form {
   kind: CategoryKind;
@@ -271,7 +272,7 @@ export function TransactionForm({ editId, initialKind }: { editId: Id | null; in
 
   const fail = (e: unknown) => {
     const { title, message } = errorAlert(e, translator);
-    Alert.alert(title, message);
+    showAlert(title, message);
   };
 
   /** Save with something missing: go there and say what to do — calm, no error. */
@@ -347,7 +348,7 @@ export function TransactionForm({ editId, initialKind }: { editId: Id | null; in
 
   const confirmDelete = () => {
     if (!existing) return;
-    Alert.alert(
+    showAlert(
       t('dialog.deleteTx.title'),
       t('dialog.deleteTx.body', {
         amount: formatMoney(existing.amount, existing.currency),

@@ -1,6 +1,6 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -38,6 +38,7 @@ import { CATEGORY_KINDS, type Category, type CategoryKind } from '@/types/models
 import { categoryName, iconLabelKey, shownNames, storedName, templateLabelKey } from '@/utils/categoryNames';
 import { errorAlert } from '@/utils/errorMessage';
 import { hapticSuccess, hapticTick } from '@/utils/haptics';
+import { showAlert } from '@/store/useDialogStore';
 
 interface Draft {
   template: TemplateKey | null;
@@ -104,7 +105,7 @@ export default function CategoryEditorScreen() {
 
   const fail = (e: unknown) => {
     const { title, message } = errorAlert(e, translator);
-    Alert.alert(title, message);
+    showAlert(title, message);
   };
 
   if (editId !== null && data && !existing) {
@@ -184,13 +185,13 @@ export default function CategoryEditorScreen() {
     const uses = await categoryUsage(db, category.id);
     if (uses > 0) {
       // A used category is never deleted (§3): offer to archive it instead.
-      Alert.alert(t('dialog.categoryInUse.title'), translator.tp('dialog.categoryInUse.body', uses, { name }), [
+      showAlert(t('dialog.categoryInUse.title'), translator.tp('dialog.categoryInUse.body', uses, { name }), [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('common.archive'), onPress: () => void archive(category) },
       ]);
       return;
     }
-    Alert.alert(t('dialog.deleteCategory.title'), t('dialog.deleteCategory.body', { name }), [
+    showAlert(t('dialog.deleteCategory.title'), t('dialog.deleteCategory.body', { name }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),

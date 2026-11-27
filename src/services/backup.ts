@@ -1,7 +1,3 @@
-import * as DocumentPicker from 'expo-document-picker';
-import { Directory, File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-
 import { BRAND } from '@/constants/brand';
 import { addActivity } from '@/db/activityRepository';
 import {
@@ -16,13 +12,15 @@ import {
 } from '@/db/backupRepository';
 import type { Db } from '@/db/db';
 import { DomainError } from '@/db/errors';
+import { pickBackupText, safetyCopy, shareBackupFile } from '@/platform/backupFiles';
 import { useAppStore, type PersistedPrefs } from '@/store/useAppStore';
 import { sanitizePrefs } from '@/utils/sanitizePrefs';
 
 /**
  * Backup, restore and "Undo restore" (§11) — TracKar's design. The format and the data access are in
- * `@/db/backupRepository`; this file adds files, the share sheet, the safety copy (on the device, of the
- * account's online data) and preferences.
+ * `@/db/backupRepository`; this file adds the safety copy (on the device, of the account's online data) and
+ * preferences. Files, the share sheet and where the safety copy is kept differ between the phone and the web
+ * (`@/platform/backupFiles`, 0.6.0).
  * Errors are `DomainError`s with `backup.*` codes, shown by the screen in the current language.
  */
 
@@ -32,61 +30,25 @@ function currentPrefs(): Partial<PersistedPrefs> {
   return { defaultTheme, language, periodStartDay, devToolsHidden };
 }
 
-/** Deletes a file if it's there; a file that can't be removed is left for the system to clear. */
-function removeQuietly(file: File) {
-  try {
-    if (file.exists) file.delete();
-  } catch {
-    // The cache is the app's own, and the system clears it when space runs low.
-  }
-}
-
 /**
- * Earlier export files in the cache. The newest one stays until the next export: the app the user shared
- * it with may still be reading it after the share sheet closes.
- */
-function removeOldExports() {
-  try {
-    for (const entry of new Directory(Paths.cache).list()) {
-      if (entry instanceof File && entry.name.startsWith(`${BRAND.name}-backup-`) && entry.name.endsWith('.json')) removeQuietly(entry);
-    }
-  } catch {
-    // Listing failed: nothing is lost, the files only wait for the system to clear them.
-  }
-}
-
-async function writeJson(file: File, value: unknown): Promise<void> {
-  if (file.exists) file.delete();
-  file.create();
-  await file.write(JSON.stringify(value));
-}
-
-/**
- * Writes everything to a JSON file and opens the share sheet (Drive, Files…). Android can't tell
- * "saved" from "cancelled", so the caller asks afterwards and records "Last backup" only on a yes.
+ * Writes everything to a JSON file and shares it (the share sheet; on the web, the browser's share or a
+ * download). Android can't tell "saved" from "cancelled", so the caller asks afterwards and records "Last
+ * backup" only on a yes.
  */
 export async function exportBackup(db: Db, dialogTitle: string): Promise<void> {
-  if (!(await Sharing.isAvailableAsync())) throw new DomainError('backup.noSharing');
   const backup = await createBackup(db, currentPrefs());
-  removeOldExports();
-  const file = new File(Paths.cache, `${BRAND.name}-backup-${backup.exportedAt.slice(0, 10)}.json`);
-  await writeJson(file, backup);
-  await Sharing.shareAsync(file.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle });
+  await shareBackupFile(`${BRAND.name}-backup-${backup.exportedAt.slice(0, 10)}.json`, JSON.stringify(backup), dialogTitle);
 }
 
 /** Lets the user pick a backup file and validates it. Null if they cancel. */
 export async function pickBackup(): Promise<{ backup: BackupFile; summary: BackupSummary } | null> {
-  const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
-  if (result.canceled || !result.assets[0]) return null;
-  // The picker copied the file into the cache; once read, that copy of the data isn't needed.
-  const picked = new File(result.assets[0].uri);
+  const text = await pickBackupText();
+  if (text === null) return null;
   let parsed: unknown;
   try {
-    parsed = JSON.parse(await picked.text());
+    parsed = JSON.parse(text);
   } catch {
     throw new DomainError('backup.notApp');
-  } finally {
-    removeQuietly(picked);
   }
   const backup = validateBackup(parsed);
   return { backup, summary: backupSummary(backup) };
@@ -108,25 +70,10 @@ export const RESTORE_UNDO_DAYS = 7;
 const RESTORE_UNDO_MS = RESTORE_UNDO_DAYS * 24 * 60 * 60 * 1000;
 
 /**
- * In the document directory (not the cache, which Android may clear). One copy only: the data from
- * just before the *latest* restore.
- */
-const safetyFile = () => new File(Paths.document, 'pre-restore-backup.json');
-
-/**
  * Signing out (§5): the safety copy is the signed-out account's data, so it goes — "Undo restore" must never put
  * one account's data into the next one signed in on this device.
  */
-export const forgetSafetyCopy = () => removeSafetyCopy();
-
-function removeSafetyCopy() {
-  try {
-    const file = safetyFile();
-    if (file.exists) file.delete();
-  } catch {
-    // Nothing useful to do; the next restore overwrites it.
-  }
-}
+export const forgetSafetyCopy = () => safetyCopy.remove();
 
 /**
  * Saves the current data before a restore replaces it and checks it reads back; if that fails the
@@ -135,16 +82,16 @@ function removeSafetyCopy() {
  */
 async function saveSafetyCopy(db: Db): Promise<boolean> {
   if (!(await hasAnyData(db))) {
-    removeSafetyCopy();
+    await safetyCopy.remove();
     return false;
   }
   try {
-    const file = safetyFile();
-    await writeJson(file, await createBackup(db, currentPrefs()));
-    const back = JSON.parse(await file.text()) as Partial<BackupFile>;
+    await safetyCopy.write(JSON.stringify(await createBackup(db, currentPrefs())));
+    const text = await safetyCopy.read();
+    const back = (text === null ? null : JSON.parse(text)) as Partial<BackupFile> | null;
     if (back?.app !== BACKUP_APP) throw new Error('unreadable');
   } catch {
-    removeSafetyCopy();
+    await safetyCopy.remove();
     throw new DomainError('backup.safetyCopy');
   }
   return true;
@@ -160,7 +107,7 @@ export async function restoreBackup(db: Db, backup: BackupFile, options: { annou
     await applyBackup(db, backup);
   } catch (e) {
     // Nothing was replaced (the restore is atomic), so there is nothing to undo either.
-    removeSafetyCopy();
+    await safetyCopy.remove();
     throw e;
   }
   if (options.announce === false) {
@@ -188,17 +135,17 @@ export interface RestoreUndo {
 
 async function readSafetyCopy(): Promise<BackupFile | null> {
   try {
-    const file = safetyFile();
-    if (!file.exists) return null;
-    const backup = validateBackup(JSON.parse(await file.text()));
+    const text = await safetyCopy.read();
+    if (text === null) return null;
+    const backup = validateBackup(JSON.parse(text));
     if (Date.now() - new Date(backup.exportedAt).getTime() > RESTORE_UNDO_MS) {
-      removeSafetyCopy();
+      await safetyCopy.remove();
       return null;
     }
     return backup;
   } catch {
     // Damaged or unreadable: it isn't offered.
-    removeSafetyCopy();
+    await safetyCopy.remove();
     return null;
   }
 }
@@ -216,7 +163,7 @@ export async function undoRestore(db: Db): Promise<void> {
   const backup = await readSafetyCopy();
   if (!backup) throw new DomainError('backup.nothingToUndo');
   await applyBackup(db, backup);
-  removeSafetyCopy();
+  await safetyCopy.remove();
   await addActivity(db, 'restore_undone', {}).catch(() => false);
   useAppStore.getState().invalidateData();
 }

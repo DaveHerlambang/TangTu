@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useLocales } from 'expo-localization';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
@@ -27,6 +27,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { THEME_ORDER, radius, spacing, themes, type ThemeName } from '@/theme/themes';
 import { errorAlert } from '@/utils/errorMessage';
 import { formatBackupAge } from '@/utils/format';
+import { showAlert } from '@/store/useDialogStore';
 
 const THEME_LABEL: Record<ThemeName, MessageKey> = {
   sakura: 'theme.sakura',
@@ -72,7 +73,7 @@ export default function SettingsScreen() {
 
   const fail = (e: unknown) => {
     const { title, message } = errorAlert(e, translator);
-    Alert.alert(title, message);
+    showAlert(title, message);
   };
   const counts = (n: { categories: number; transactions: number }) => ({
     categories: tp('count.categories', n.categories),
@@ -84,7 +85,7 @@ export default function SettingsScreen() {
     try {
       await exportBackup(db, t('settings.backup.shareTitle'));
       // The share sheet can't tell "saved" from "cancelled", so ask. Only "Yes, saved" moves "Last backup".
-      Alert.alert(t('dialog.backupSaved.title'), t('dialog.backupSaved.body'), [
+      showAlert(t('dialog.backupSaved.title'), t('dialog.backupSaved.body'), [
         { text: t('dialog.backupSaved.no'), style: 'cancel' },
         { text: t('dialog.backupSaved.yes'), onPress: () => setLastBackupAt(new Date().toISOString()) },
       ]);
@@ -115,7 +116,7 @@ export default function SettingsScreen() {
       const picked = await pickBackup();
       if (!picked) return;
       const { backup, summary } = picked;
-      Alert.alert(t('dialog.restore.title'), t('dialog.restore.body', { date: formatDayMonthYear(summary.exportedAt, lang), ...counts(summary) }), [
+      showAlert(t('dialog.restore.title'), t('dialog.restore.body', { date: formatDayMonthYear(summary.exportedAt, lang), ...counts(summary) }), [
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('dialog.restore.confirm'),
@@ -146,7 +147,7 @@ export default function SettingsScreen() {
   const doUndoRestore = () => {
     if (!undo) return;
     const saved = `${formatDayMonth(undo.savedAt, lang)} ${formatTime(undo.savedAt)}`;
-    Alert.alert(t('dialog.undoRestore.title'), t('dialog.undoRestore.body', { date: saved, ...counts(undo) }), [
+    showAlert(t('dialog.undoRestore.title'), t('dialog.undoRestore.body', { date: saved, ...counts(undo) }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('dialog.undoRestore.confirm'),
@@ -158,7 +159,7 @@ export default function SettingsScreen() {
 
   /** Signing out asks first (§5); the data stays in the project. */
   const doSignOut = () => {
-    Alert.alert(t('dialog.signOut.title'), t('dialog.signOut.body'), [
+    showAlert(t('dialog.signOut.title'), t('dialog.signOut.body'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('settings.account.signOut'), style: 'destructive', onPress: () => void signOut().catch(fail) },
     ]);

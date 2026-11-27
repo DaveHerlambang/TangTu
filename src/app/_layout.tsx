@@ -16,10 +16,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
+import { DialogHost } from '@/components/DialogHost';
 import { ThemedSplash } from '@/components/ThemedSplash';
 import { ToastHost } from '@/components/ToastHost';
 import { useActivityEvents } from '@/hooks/useActivityEvents';
 import { useHideAmountsInBackground } from '@/hooks/useAmounts';
+import { useWideGutter } from '@/hooks/useWideLayout';
 import { useT } from '@/i18n';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/themes';
@@ -31,6 +33,12 @@ const DevToolsGear = __DEV__
   ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- the conditional require is what lets Metro strip it
     (require('@/components/DevToolsGear') as typeof import('@/components/DevToolsGear')).DevToolsGear
   : null;
+
+/**
+ * Home sits under every screen, also one opened straight from a URL (the web app reloaded on /settings, 0.6.0):
+ * so there is always a way back — the iPhone's Home Screen app has no browser Back button.
+ */
+export const unstable_settings = { initialRouteName: '(tabs)' };
 
 // Keep the native splash up while the fonts and the saved session load; the themed splash takes over
 // from it (see ThemedSplash) so there's never a blank frame in between.
@@ -55,6 +63,8 @@ function ThemedStack() {
   const { t } = useT();
   const c = theme.colors;
   const signedIn = status === 'signedIn';
+  // A wide web window: every screen but Home (layout E, in the tabs) is a centred column (0.6.0).
+  const gutter = useWideGutter();
   // Once per launch: the greeting covers the first render, then fades to reveal the app.
   const [greeting, setGreeting] = useState(true);
   return (
@@ -62,7 +72,7 @@ function ThemedStack() {
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: c.background },
+          contentStyle: [{ backgroundColor: c.background }, gutter],
           headerStyle: { backgroundColor: c.background },
           headerTintColor: c.text,
           headerTitleStyle: { fontFamily: fonts.extrabold, color: c.text },
@@ -78,7 +88,7 @@ function ThemedStack() {
           Since 0.5.0 everything but `sign-in` needs someone signed in (Stack.Protected, §4).
         */}
         <Stack.Protected guard={signedIn}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: c.background } }} />
         <Stack.Screen name="settings" options={{ title: t('screen.settings') }} dangerouslySingular />
         <Stack.Screen name="categories" options={{ title: t('screen.categories') }} dangerouslySingular />
         <Stack.Screen
@@ -105,6 +115,7 @@ function ThemedStack() {
       {signedIn ? <SignedInEffects /> : null}
       {__DEV__ && DevToolsGear && signedIn ? <DevToolsGear /> : null}
       <ToastHost />
+      <DialogHost />
       {greeting && <ThemedSplash onShown={hideNativeSplash} onDone={() => setGreeting(false)} />}
     </>
   );

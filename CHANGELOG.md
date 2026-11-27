@@ -5,6 +5,37 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.6.0 — 2026-11-26
+
+The web app: TangTu runs in a browser and installs on an iPhone's Home Screen; wide windows get the ledger
+layout E, "Buku kas" (docs/SPEC.md §4, §13.9). A new capability — MINOR (§10.2). No migration; backups unchanged.
+
+**Self-hosters: the web app is optional. To have it, follow README step 6 (Vercel, two environment variables).**
+
+**NEW**
+- Web app (react-native-web, single-page export) with a manifest, iPhone Home Screen tags, icons and a small
+  service worker that keeps only the app's own files; `vercel.json` for the deploy.
+- Layout E on windows 960 px and wider: filters always on the left, the totals in one line, a quick-entry row by
+  keyboard (Tab between fields, Enter saves and returns to the amount), the transactions as a table by day with
+  Again · Edit · Delete on each row; the tabs as a rail; other screens in a centred column.
+- Backup in the browser: shared or downloaded; restore through the browser's file chooser; the safety copy for
+  Undo restore in IndexedDB.
+
+**CHANGED**
+- Dialogs go through `showAlert`: the system dialog on the phone as before, TangTu's own in the web app.
+- A screen opened straight from an address has Home under it, so Back is always there.
+- The toast is at most 560 px wide (only noticeable on wide windows).
+
+**UNDER THE HOOD**
+- Platform twins (`.web.ts(x)`): `src/platform/kvStorage`, `installLocalStorage`, `backupFiles`;
+  `db/legacyRepository`; `components/wide/WideHome`. The web bundle has no expo-sqlite (checked on the export).
+- `useTransactionSearch(…, { panel: true })` and `reset()`; `useTransactionActions` returns `again`, `edit`,
+  `confirmDelete`; `useSearchRangeLabel` shared by both search layouts; `useWideLayout` / `useWideGutter`.
+- ESLint refuses `Alert` from `react-native`. Tests: 172 (`platform-files.test.ts` new; the literal-text check
+  also reads `showAlert`).
+
+---
+
 ## 0.5.0 — 2026-11-26
 
 TangTu goes online: the data lives in each user's own Supabase project (docs/SPEC.md §0.4, §14.9–16). A change of

@@ -160,7 +160,7 @@ people they add can sign in (owner, 2026-11-26). The README carries these steps 
    with a user from step 3.
 6. **The web app (since 0.6.0; how the owner's iPhone gets TangTu):** import the repository into Vercel (a free
    Hobby project; `vercel.json` in the repo sets the build: `npx expo export --platform web` into `dist`, every
-   path served by `index.html`). Add the same two `EXPO_PUBLIC_…` variables in the Vercel project's environment
+   path served by the app's page — the rewrite points at `/`, since `cleanUrls` turns `/index.html` into a redirect). Add the same two `EXPO_PUBLIC_…` variables in the Vercel project's environment
    variables, production branch `master`. On the iPhone: open the address in Safari → Share → **Add to Home
    Screen**. The web app is the same app (same Supabase project, same accounts); anyone with the address sees
    the sign-in screen and nothing else (sign-up is off, step 3; search engines are told not to index it). The
@@ -1293,3 +1293,14 @@ Still open:
   file chooser. Not checked: Safari, the iPhone and its Home Screen app, the share sheet path (Chrome on the
   desktop downloads), the service worker on a real HTTPS deploy, Vercel itself (needs the owner's account),
   and the phone app on a device (the shared changes are type-checked and the Android export builds).
+
+**2026-11-27 — release 0.6.1 (PATCH): addresses other than `/` on Vercel**
+- On the first deploy (`tangtu.vercel.app`, 0.6.0) the app, the manifest and `sw.js` loaded, but any other
+  address (`/settings`, a reload on a screen) was Vercel's 404: the rewrite pointed at `/index.html`, which
+  `cleanUrls` redirects to `/`, so nothing matched. The rewrite now points at `/` (as Expo's Vercel guide does).
+  Checked on the live site before the fix: `/` 200 with the security headers, `/manifest.webmanifest` and `/sw.js`
+  200, `/settings` 404, `/index.html` 308 → `/`. The fix itself is only checkable on Vercel after the push.
+- Release check, one exception (owner, 2026-11-27): `expo-doctor` failed 1 of 20 because Expo published
+  `expo` 58.1.0 and five patch updates overnight (it passed 20/20 for 0.6.0 the day before). 0.6.1 changes only
+  the deploy config, so it ships without the bump; `npx expo install --fix` goes into the next release, where it
+  is tested on the phone. Typecheck, 172 tests, lint, the npm 10 lockfile check and the web export passed.

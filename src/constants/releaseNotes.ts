@@ -25,6 +25,18 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.6.1',
+    date: '2026-11-27',
+    en: {
+      summary: 'A fix for the web app.',
+      sections: [{ heading: 'fixed', items: ['Reloading the web app on a screen other than Home no longer shows a "page not found" error.'] }],
+    },
+    id: {
+      summary: 'Perbaikan untuk web app.',
+      sections: [{ heading: 'fixed', items: ['Memuat ulang web app di layar selain Beranda tidak lagi menampilkan pesan "halaman tidak ditemukan".'] }],
+    },
+  },
+  {
     version: '0.6.0',
     date: '2026-11-26',
     en: {

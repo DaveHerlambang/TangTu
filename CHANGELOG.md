@@ -5,6 +5,14 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.6.1 — 2026-11-27
+
+**FIXED**
+- Web app on Vercel: opening or reloading any address other than `/` (for example `/settings`) showed Vercel's
+  404. `vercel.json` rewrote to `/index.html`, which `cleanUrls` redirects; it now rewrites to `/`.
+
+---
+
 ## 0.6.0 — 2026-11-26
 
 The web app: TangTu runs in a browser and installs on an iPhone's Home Screen; wide windows get the ledger

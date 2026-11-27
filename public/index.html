@@ -46,6 +46,18 @@
         height: 100%;
         flex: 1;
       }
+      /*
+        0.6.3: in Safari on the iPhone, 100% is the height with the browser's toolbars hidden, so the bottom of the
+        app (the Home | Charts tabs) sat under the toolbar. dvh follows what is actually visible as the toolbars come
+        and go; 100% stays for browsers without it.
+      */
+      @supports (height: 100dvh) {
+        html,
+        body,
+        #root {
+          height: 100dvh;
+        }
+      }
     </style>
   </head>
 

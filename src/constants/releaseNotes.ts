@@ -25,6 +25,18 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.6.3',
+    date: '2026-11-27',
+    en: {
+      summary: 'A fix for the web app on iPhone.',
+      sections: [{ heading: 'fixed', items: ['In Safari on iPhone, the Home and Charts buttons at the bottom are no longer cut off.'] }],
+    },
+    id: {
+      summary: 'Perbaikan web app di iPhone.',
+      sections: [{ heading: 'fixed', items: ['Di Safari iPhone, tombol Beranda dan Grafik di bawah tidak lagi terpotong.'] }],
+    },
+  },
+  {
     version: '0.6.2',
     date: '2026-11-27',
     en: {

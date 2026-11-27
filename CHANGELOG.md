@@ -5,6 +5,14 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.6.3 — 2026-11-27
+
+**FIXED**
+- Web app in Safari on the iPhone: the Home | Charts tabs were cut off under the browser's toolbar. The page now
+  takes the visible height (`100dvh`, `100%` where unsupported).
+
+---
+
 ## 0.6.2 — 2026-11-27
 
 Layout E reworked after the owner's first look at the live web app. Polish and fixes — PATCH.

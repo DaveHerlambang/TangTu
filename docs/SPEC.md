@@ -1327,3 +1327,12 @@ Still open:
   in two whole groups, the month dialog. Not checked: Safari, the iPhone, the phone app on a device.
 - Release check exception again (owner said "commit push merge"): `expo-doctor` still flags Expo 58.1 and five patch
   updates; the bump waits for a release that is tested on the phone. Everything else passed.
+
+**2026-11-27 — release 0.6.3 (PATCH): the tab bar under Safari's toolbar**
+- Owner, on the iPhone in Safari (not yet from the Home Screen): the Home | Charts tabs were cut off at the bottom.
+  The page was `height: 100%`, which in iPhone Safari is the height with its toolbars hidden, so the bottom of the
+  app sat under the toolbar. `public/index.html` now sizes `html`, `body` and `#root` with `100dvh` (the visible
+  height, following the toolbars) where the browser has it, `100%` otherwise. From the Home Screen there is no
+  toolbar; the tab bar then keeps clear of the home indicator through the safe-area inset (`viewport-fit=cover`).
+- Checked: the export's page carries the rule. Not checked: an iPhone (no Safari here; Chrome's phone emulation has
+  no toolbar to hide behind) — the owner's look on the phone is the proof.

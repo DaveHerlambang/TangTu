@@ -25,6 +25,18 @@ export interface ReleaseNotes {
 
 export const RELEASE_NOTES: readonly ReleaseNotes[] = [
   {
+    version: '0.6.4',
+    date: '2026-11-27',
+    en: {
+      summary: 'The Home and Charts buttons are whole again.',
+      sections: [{ heading: 'fixed', items: ['In the web app on a phone, the words under the Home and Charts buttons are no longer cut off.'] }],
+    },
+    id: {
+      summary: 'Tombol Beranda dan Grafik kembali utuh.',
+      sections: [{ heading: 'fixed', items: ['Di web app pada HP, tulisan di bawah tombol Beranda dan Grafik tidak lagi terpotong.'] }],
+    },
+  },
+  {
     version: '0.6.3',
     date: '2026-11-27',
     en: {

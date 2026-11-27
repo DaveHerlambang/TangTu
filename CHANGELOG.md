@@ -5,6 +5,15 @@ Versioning rules live in [`docs/SPEC.md`](docs/SPEC.md) §10. Add an entry here 
 
 ---
 
+## 0.6.4 — 2026-11-27
+
+**FIXED**
+- Web app on phones: the Home | Charts labels were cut off at the bottom (0.6.3 did not fix it). Each tab's label got
+  a 10 px box for 11 px text, which the web clips; the web's bottom bar is now 56 px plus the safe area. The phone
+  app is unchanged.
+
+---
+
 ## 0.6.3 — 2026-11-27
 
 **FIXED**

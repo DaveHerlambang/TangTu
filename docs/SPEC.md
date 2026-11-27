@@ -1336,3 +1336,13 @@ Still open:
   toolbar; the tab bar then keeps clear of the home indicator through the safe-area inset (`viewport-fit=cover`).
 - Checked: the export's page carries the rule. Not checked: an iPhone (no Safari here; Chrome's phone emulation has
   no toolbar to hide behind) — the owner's look on the phone is the proof.
+
+**2026-11-27 — release 0.6.4 (PATCH): the tab labels, for real this time**
+- 0.6.3 did not fix it: the owner (iPhone, iOS 18.6.2, Safari, app 0.6.3) still saw "Home" / "Charts" cut off.
+  Measured in Chrome at 375×685 it reproduced: the tab bar fitted the screen exactly (bottom at 685), but the label's
+  box was 10 px high for 11 px Nunito, and the web clips a text box (`overflow: hidden`). React Navigation's bar is
+  49 high and each tab has a fixed 5 px padding top and bottom around a 28 px icon, leaving the label 10 px; the phone
+  draws text past its box, so only the web showed it. The web's bottom bar is now 56 + the safe area (the label gets
+  15 px, measured); the phone app keeps 49 and the wide rail is unchanged. 0.6.3's `100dvh` stays: it is the right
+  height in Safari, it just wasn't the cause.
+- Lesson kept: measure before fixing. The first fix was reasoned from the screenshot alone.
